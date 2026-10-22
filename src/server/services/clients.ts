@@ -19,7 +19,7 @@ import {
 } from "../db/schema";
 import { audit, can, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
-import { parse, zBool, zCurrency, zDate, zEmail, zInt, zMoney, zRequiredDate, zRequiredText, zText, zUuid } from "../validation";
+import { Loose, parse, zBool, zCurrency, zDate, zEmail, zInt, zMoney, zRequiredDate, zRequiredText, zText, zUuid } from "../validation";
 import { normalizeName, phoneDigits } from "@/lib/text";
 import { firstOfMonth, formatPeriod } from "@/lib/dates";
 import {
@@ -58,7 +58,7 @@ export const clientInput = z.object({
   communityManagerId: zUuid(),
   notes: zText(4000),
 });
-export type ClientInput = z.input<typeof clientInput>;
+export type ClientInput = Loose<typeof clientInput>;
 
 export const contractInput = z.object({
   packageId: zUuid(),
@@ -82,7 +82,7 @@ export const contractInput = z.object({
   servicesNotes: zText(2000),
   firstSessionDate: zDate(),
 });
-export type ContractInput = z.input<typeof contractInput>;
+export type ContractInput = Loose<typeof contractInput>;
 
 // ───────────────────────── Consultas ─────────────────────────
 
@@ -501,7 +501,7 @@ export async function offboardingPreview(ctx: Ctx, id: string, lastServicePeriod
 }
 
 /** Baja formal: conserva facturas, pagos, deudas, documentos e historial. */
-export async function offboardClient(ctx: Ctx, id: string, raw: z.input<typeof offboardingInput>) {
+export async function offboardClient(ctx: Ctx, id: string, raw: Loose<typeof offboardingInput>) {
   requirePerm(ctx, "clients.archive");
   const input = parse(offboardingInput, raw);
   const c = await loadClient(ctx, id);

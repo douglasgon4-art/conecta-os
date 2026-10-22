@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { employees, notificationRules, permissions, rolePermissions, roles, sessions, userRoles, users } from "../db/schema";
 import { audit, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
-import { parse, zRequiredText, zUuid } from "../validation";
+import { Loose, parse, zRequiredText, zUuid } from "../validation";
 import { hashPassword } from "../auth/core";
 
 export const userInput = z.object({
@@ -34,7 +34,7 @@ export async function listUsers(ctx: Ctx) {
 }
 
 /** Crear usuarios y asignar roles cambia permisos: es una acción sensible. */
-export async function createUser(ctx: Ctx, raw: z.input<typeof userInput>) {
+export async function createUser(ctx: Ctx, raw: Loose<typeof userInput>) {
   requirePerm(ctx, "settings.manage");
   const input = parse(userInput, raw);
   const roleRows = await ctx.tx.select().from(roles).where(inArray(roles.key, input.roleKeys));

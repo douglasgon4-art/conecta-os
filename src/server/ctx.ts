@@ -21,8 +21,12 @@ export type Ctx = {
   actor: Actor;
   now: Date;
   today: string;
-  /** Ejecuta una parte de la operación con privilegios de sistema (p. ej. crear la factura al convertir una venta). */
+  /**
+   * Ejecuta una parte de la operación con privilegios de sistema (p. ej. crear la factura al convertir una venta).
+   * Solo debe usarse DESPUÉS de verificar el permiso de la acción principal.
+   */
   elevate<T>(fn: () => Promise<T>): Promise<T>;
+  readonly elevated: boolean;
 };
 
 export function systemActor(name = "Sistema", source: ActorSource = "automation"): Actor {
@@ -49,6 +53,9 @@ export async function withCtx<T>(actor: Actor, fn: (ctx: Ctx) => Promise<T>, opt
         actor,
         now,
         today: todayISO(now),
+        get elevated() {
+          return depth > 0;
+        },
         async elevate(inner) {
           if (isSystem) return inner();
           depth++;
@@ -72,6 +79,7 @@ export async function withCtx<T>(actor: Actor, fn: (ctx: Ctx) => Promise<T>, opt
 }
 
 export function can(ctx: Ctx | Actor, perm: Permission): boolean {
+  if ("actor" in ctx && ctx.elevated) return true;
   const actor = "actor" in ctx ? ctx.actor : ctx;
   if (actor.source === "automation" || actor.source === "system") return true;
   return actor.permissions.has(perm);

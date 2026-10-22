@@ -3,7 +3,7 @@ import { z } from "zod";
 import { clients, contentPlanItems, employees, monthlyContentPlans, productionBoards, productionDeliverables } from "../db/schema";
 import { audit, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
-import { parse, zDate, zText } from "../validation";
+import { Loose, parse, zDate, zText } from "../validation";
 import { addDays, addMonths, firstOfMonth, formatPeriod, maxDate } from "@/lib/dates";
 import { COMPLETED_DELIVERABLE_STATUSES, OPERATIVE_CLIENT_STATUSES, PLAN_STATUSES, labelOf, values, type PlanStatus } from "@/lib/domain";
 import type { Client, Contract } from "./workspace";
@@ -136,7 +136,7 @@ async function loadPlan(ctx: Ctx, id: string) {
   return p;
 }
 
-export async function updatePlan(ctx: Ctx, id: string, raw: z.input<typeof planUpdateInput>) {
+export async function updatePlan(ctx: Ctx, id: string, raw: Loose<typeof planUpdateInput>) {
   requirePerm(ctx, "strategy.write");
   const input = parse(planUpdateInput, raw);
   const before = await loadPlan(ctx, id);
@@ -162,7 +162,7 @@ export const planItemInput = z.object({
   status: zText(40),
 });
 
-export async function updatePlanItem(ctx: Ctx, itemId: string, raw: z.input<typeof planItemInput>) {
+export async function updatePlanItem(ctx: Ctx, itemId: string, raw: Loose<typeof planItemInput>) {
   requirePerm(ctx, "strategy.write");
   const input = parse(planItemInput, raw);
   const [item] = await ctx.tx.select().from(contentPlanItems).where(eq(contentPlanItems.id, itemId));

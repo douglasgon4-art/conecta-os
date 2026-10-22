@@ -10,7 +10,7 @@ import {
 } from "../db/schema";
 import { audit, can, requirePerm, type Ctx } from "../ctx";
 import { AppError, notFound } from "../errors";
-import { parse, zCurrency, zDate, zEmail, zMoney, zRequiredDate, zRequiredText, zText } from "../validation";
+import { Loose, parse, zCurrency, zDate, zEmail, zMoney, zRequiredDate, zRequiredText, zText } from "../validation";
 import { normalizeName, phoneDigits } from "@/lib/text";
 import { CONTRACT_TYPES, DEPARTMENTS, EMPLOYEE_STATUSES, PAY_FREQUENCIES, values } from "@/lib/domain";
 
@@ -30,7 +30,7 @@ export const employeeInput = z.object({
   managerId: z.preprocess((v) => (v === "" ? undefined : v), z.uuid().optional()),
   notes: zText(2000),
 });
-export type EmployeeInput = z.input<typeof employeeInput>;
+export type EmployeeInput = Loose<typeof employeeInput>;
 
 export async function findEmployeeDuplicates(
   ctx: Ctx,
@@ -114,7 +114,7 @@ export const employeeUpdateInput = employeeInput
     effectiveDate: zDate(),
   });
 
-export async function updateEmployee(ctx: Ctx, id: string, raw: z.input<typeof employeeUpdateInput>) {
+export async function updateEmployee(ctx: Ctx, id: string, raw: Loose<typeof employeeUpdateInput>) {
   requirePerm(ctx, "employees.write");
   const input = parse(employeeUpdateInput, raw);
   const [before] = await ctx.tx.select().from(employees).where(eq(employees.id, id));
@@ -171,7 +171,7 @@ export const salaryChangeInput = z.object({
 export async function changeSalary(
   ctx: Ctx,
   employeeId: string,
-  raw: z.input<typeof salaryChangeInput>,
+  raw: Loose<typeof salaryChangeInput>,
   opts: { confirmRetroactive?: boolean } = {},
 ) {
   requirePerm(ctx, "employees.salary");

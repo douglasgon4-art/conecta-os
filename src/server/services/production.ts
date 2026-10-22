@@ -12,7 +12,7 @@ import {
 } from "../db/schema";
 import { audit, can, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, forbidden, notFound } from "../errors";
-import { parse, zDate, zText, zUuid } from "../validation";
+import { Loose, parse, zDate, zText, zUuid } from "../validation";
 import { addMonths, firstOfMonth, formatPeriod, lastOfMonth, withDay } from "@/lib/dates";
 import {
   COMPLETED_DELIVERABLE_STATUSES,
@@ -266,7 +266,7 @@ export const deliverableUpdateInput = z.object({
   scriptRef: zText(4000),
   notes: zText(4000),
 });
-export type DeliverableUpdate = z.input<typeof deliverableUpdateInput>;
+export type DeliverableUpdate = Loose<typeof deliverableUpdateInput>;
 
 async function loadDeliverableForWrite(ctx: Ctx, id: string) {
   const [row] = await ctx.tx
@@ -397,7 +397,7 @@ export const boardUpdateInput = z.object({
 });
 
 /** Asignar diseñador/editor al tablero propaga la asignación a los entregables que no tenían otro responsable. */
-export async function updateBoard(ctx: Ctx, id: string, raw: z.input<typeof boardUpdateInput>) {
+export async function updateBoard(ctx: Ctx, id: string, raw: Loose<typeof boardUpdateInput>) {
   requirePerm(ctx, "production.manage");
   const input = parse(boardUpdateInput, raw);
   const [before] = await ctx.tx.select().from(productionBoards).where(eq(productionBoards.id, id));

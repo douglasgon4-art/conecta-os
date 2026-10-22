@@ -45,3 +45,6 @@ export const zBool = () =>
 export const zCurrency = () => z.enum(values(CURRENCIES)).default("NIO");
 export const zEmail = () => z.preprocess(blank, z.email("Correo inválido").optional());
 export const zTime = () => z.preprocess(blank, z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, "Hora inválida").optional());
+
+/** Entrada sin tipar estrictamente (formularios, agente): la validación real la hace Zod en el servidor. */
+export type Loose<S extends z.ZodType> = { [K in keyof z.infer<S>]?: unknown };

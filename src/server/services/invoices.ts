@@ -3,7 +3,7 @@ import { z } from "zod";
 import { clients, invoicePayments, invoices } from "../db/schema";
 import { audit, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
-import { parse, zCurrency, zPositiveMoney, zRequiredDate, zRequiredText, zText, zUuid } from "../validation";
+import { Loose, parse, zCurrency, zPositiveMoney, zRequiredDate, zRequiredText, zText, zUuid } from "../validation";
 import { addDays, firstOfMonth, formatPeriod, maxDate, monthsBetween, withDay } from "@/lib/dates";
 import { PAYMENT_METHODS, values, type InvoiceStatus } from "@/lib/domain";
 import { round2 } from "@/lib/money";
@@ -92,7 +92,7 @@ export const invoiceInput = z.object({
   notes: zText(2000),
 });
 
-export async function createInvoice(ctx: Ctx, raw: z.input<typeof invoiceInput>, opts: { allowDuplicate?: boolean } = {}) {
+export async function createInvoice(ctx: Ctx, raw: Loose<typeof invoiceInput>, opts: { allowDuplicate?: boolean } = {}) {
   requirePerm(ctx, "invoices.write");
   const input = parse(invoiceInput, raw);
   if (input.dueDate < input.issueDate) throw new AppError("VALIDATION", "El vencimiento no puede ser anterior a la emisión");
@@ -143,7 +143,7 @@ export const paymentInput = z.object({
 });
 
 /** Registra un cobro (total o parcial). Bloquea la fila para evitar cobros dobles concurrentes. */
-export async function recordInvoicePayment(ctx: Ctx, invoiceId: string, raw: z.input<typeof paymentInput>) {
+export async function recordInvoicePayment(ctx: Ctx, invoiceId: string, raw: Loose<typeof paymentInput>) {
   requirePerm(ctx, "invoices.pay");
   const input = parse(paymentInput, raw);
   if (input.idempotencyKey) {
