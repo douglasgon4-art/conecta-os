@@ -27,6 +27,8 @@ export const SETTINGS_SCHEMA = {
   invoice_due_notice_days: z.number().int().min(0).max(31),
   expense_due_notice_days: z.number().int().min(0).max(31),
   payroll_prepare_days: z.number().int().min(0).max(15),
+  /** Regla para asignar gastos generales a clientes en la rentabilidad. */
+  overhead_allocation: z.enum(["ninguna", "proporcional_ingresos"]),
   onboarding_tasks: z.array(
     z.object({
       key: z.string(),
@@ -55,6 +57,7 @@ export const DEFAULT_SETTINGS: Settings = {
   invoice_due_notice_days: 5,
   expense_due_notice_days: 5,
   payroll_prepare_days: 3,
+  overhead_allocation: "ninguna",
   onboarding_tasks: [
     { key: "contrato", title: "Firmar y archivar el contrato", department: "administracion", dueInDays: 3 },
     { key: "accesos", title: "Solicitar accesos a las redes sociales", department: "community", dueInDays: 3, requires: "community" },

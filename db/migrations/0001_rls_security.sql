@@ -35,7 +35,7 @@ BEGIN
     EXECUTE 'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO conecta_app';
     -- DELETE solo donde borrar no destruye historial operativo o financiero.
     EXECUTE 'GRANT DELETE ON sessions, notifications, user_roles, role_permissions, notification_rules,
-             client_contacts, budgets, payroll_adjustments, ai_conversations, ai_messages TO conecta_app';
+             client_contacts, budgets, payroll_adjustments, payroll_records, ai_conversations, ai_messages TO conecta_app';
     -- Tablas de solo inserción (historial inmutable).
     EXECUTE 'REVOKE UPDATE ON audit_logs, client_status_history, deliverable_events, content_session_events,
              employee_changes, daily_publication_snapshots, invoice_payments, expense_payments,

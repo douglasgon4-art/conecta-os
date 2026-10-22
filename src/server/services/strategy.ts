@@ -200,7 +200,7 @@ export async function setPlanStatus(ctx: Ctx, id: string, to: PlanStatus, note?:
   if (!values(PLAN_STATUSES).includes(to)) throw new AppError("VALIDATION", "Estado de planificación inválido");
   requirePerm(ctx, to === "aprobada" ? "strategy.approve" : "strategy.write");
   const before = await loadPlan(ctx, id);
-  if (before.status === to) return before;
+  if (before.status === to) return { ...before, sync: null };
   if (!TRANSITIONS[before.status as PlanStatus].includes(to)) {
     throw conflict(`No se puede pasar de "${labelOf(PLAN_STATUSES, before.status)}" a "${labelOf(PLAN_STATUSES, to)}"`);
   }
