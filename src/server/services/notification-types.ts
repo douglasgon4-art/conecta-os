@@ -1,0 +1,20 @@
+export const NOTIFICATION_TYPES = {
+  session_attention: "Sesiones que requieren atención",
+  plan_pending: "Planificaciones mensuales pendientes",
+  deliverable_overdue: "Diseños y reels atrasados",
+  production_incomplete: "Clientes con producción incompleta",
+  content_ready: "Contenido listo para publicar",
+  publication_pending: "Publicaciones pendientes",
+  invoice_due: "Facturas por vencer",
+  invoice_overdue: "Cobros atrasados",
+  expense_due: "Gastos próximos a vencer o vencidos",
+  task_overdue: "Tareas asignadas atrasadas",
+  payroll_prepare: "Nóminas próximas a preparar",
+  admin_obligation: "Obligaciones administrativas pendientes",
+  client_onboarding: "Nuevos clientes e incorporaciones",
+  client_lifecycle: "Archivos, bajas y reactivaciones",
+  lead_followup: "Seguimientos de prospectos",
+  task_assigned: "Tareas asignadas",
+  automation_failed: "Fallos de automatizaciones",
+} as const;
+export type NotificationType = keyof typeof NOTIFICATION_TYPES;
