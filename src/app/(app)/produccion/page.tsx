@@ -28,8 +28,8 @@ export default async function ProductionPage({ searchParams }: { searchParams: S
       <PageHeader title="Producción mensual" subtitle={`¿Quién tiene listos sus diseños, perfil y portada, y reels en ${formatPeriod(d.month + "-01")}?`} />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Clientes" value={d.rows.length} />
-        <Stat label="Al 100 % (listos para publicar)" value={ready} tone="green" />
-        <Stat label="Con retraso" value={d.rows.filter((r) => r.delayed).length} tone="red" />
+        <Stat label="Al 100 % (listos para publicar)" value={ready} tone={ready ? "green" : undefined} />
+        <Stat label="Con retraso" value={d.rows.filter((r) => r.delayed).length} tone={d.rows.some((r) => r.delayed) ? "red" : undefined} />
         <Stat label="Avance promedio" value={d.rows.length ? formatPercent(d.rows.reduce((a, r) => a + r.progress, 0) / d.rows.length) : "—"} />
       </div>
       <Card padded={false}>

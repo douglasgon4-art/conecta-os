@@ -33,6 +33,7 @@ export function sessionAlert(s: Pick<Session, "status" | "expectedDate" | "coord
   const daysToSession = diffDays(target, today);
   const daysToCoordination = diffDays(s.coordinationStartDate, today);
   if (daysToSession < 0) return { tone: "red", label: `Sesión prevista vencida hace ${-daysToSession} día(s); revisar`, attention: true };
+  if (daysToSession === 0) return { tone: "red", label: "La sesión prevista es hoy y no está confirmada", attention: true };
   if (daysToSession <= settings.session_urgent_days) return { tone: "red", label: `Faltan ${daysToSession} día(s) y no se ha confirmado la fecha`, attention: true };
   if (daysToCoordination < 0 && s.status === "pendiente_coordinar") return { tone: "red", label: `Coordinación atrasada ${-daysToCoordination} día(s)`, attention: true };
   if (daysToCoordination <= 0) return { tone: "yellow", label: `En coordinación · faltan ${daysToSession} día(s)`, attention: true };

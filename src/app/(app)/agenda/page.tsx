@@ -58,7 +58,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: SP })
               <Link href={qs({ fecha: prev })} className="rounded-md border px-2 py-1 text-sm" aria-label="Anterior">‹</Link>
               <Link href={qs({ fecha: d.today })} className="rounded-md border px-2 py-1 text-sm">Hoy</Link>
               <Link href={qs({ fecha: next })} className="rounded-md border px-2 py-1 text-sm" aria-label="Siguiente">›</Link>
-              <span className="ml-1 font-semibold capitalize">{view === "mes" ? formatPeriod(d.ref) : view === "semana" ? `Semana del ${formatDate(d.from)}` : formatDate(d.ref, { withWeekday: true })}</span>
+              <span className="ml-1 inline-block font-semibold first-letter:uppercase">{view === "mes" ? formatPeriod(d.ref) : view === "semana" ? `Semana del ${formatDate(d.from)}` : formatDate(d.ref, { withWeekday: true })}</span>
               <div className="ml-auto flex gap-1">
                 {[["mes", "Mes"], ["semana", "Semana"], ["dia", "Día"]].map(([k, l]) => <Link key={k} href={qs({ vista: k })} className={cn("rounded-md px-2.5 py-1 text-sm", view === k ? "bg-brand-600 text-white" : "border")}>{l}</Link>)}
               </div>
