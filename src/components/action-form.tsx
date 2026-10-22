@@ -1,14 +1,15 @@
 "use client";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
+import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/app/(app)/_lib/action";
 
 type Action = (prev: ActionState, fd: FormData) => Promise<ActionState>;
 
+const PendingCtx = createContext(false);
+
 export function SubmitButton({ children, variant = "primary", size = "md", className, disabled }: { children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm" | "md"; className?: string; disabled?: boolean }) {
-  const { pending } = useFormStatus();
+  const pending = useContext(PendingCtx);
   return (
     <button
       type="submit"
@@ -34,7 +35,7 @@ export function SubmitButton({ children, variant = "primary", size = "md", class
  * (nunca un "guardado" optimista) y, si el servidor exige confirmación, la solicita y reenvía.
  */
 export function ActionForm({ action, children, className, resetOnSuccess = false, inline = false, onSuccess }: { action: Action; children: ReactNode | ((s: ActionState) => ReactNode); className?: string; resetOnSuccess?: boolean; inline?: boolean; onSuccess?: () => void }) {
-  const [state, formAction] = useActionState(action, null);
+  const [state, formAction, pending] = useActionState(action, null);
   const ref = useRef<HTMLFormElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
   const [showMsg, setShowMsg] = useState(true);
@@ -53,7 +54,9 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.at]);
   return (
-    <form ref={ref} action={formAction} className={cn(inline ? "inline-flex flex-wrap items-center gap-2" : "space-y-3", className)}>
+    // Se envía manualmente (no con la prop action) para que React no limpie los campos cuando el servidor devuelve un error.
+    <form ref={ref} onSubmit={(e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => formAction(fd)); }} className={cn(inline ? "inline-flex flex-wrap items-center gap-2" : "space-y-3", className)}>
+      <PendingCtx.Provider value={pending}>
       <input type="hidden" name="__confirm" ref={confirmRef} defaultValue="" />
       {typeof children === "function" ? children(state) : children}
       {showMsg && state && !state.confirm && (state.error || state.message) && (
@@ -72,6 +75,7 @@ export function ActionForm({ action, children, className, resetOnSuccess = false
           <span>{Object.entries(state.fieldErrors).map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
         </ul>
       )}
+      </PendingCtx.Provider>
     </form>
   );
 }
