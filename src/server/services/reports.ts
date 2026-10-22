@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNull, lte, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, notInArray, or as orOp, sql } from "drizzle-orm";
 import {
   clients,
   contentSessions,
@@ -12,7 +12,11 @@ import {
   payrollPeriods,
   payrollRecords,
 } from "../db/schema";
+import { leadCalls, tasks, employees, productionBoards as pb, productionDeliverables as pd } from "../db/schema";
 import { can, requirePerm, type Ctx } from "../ctx";
+import { complianceHistory } from "./publications";
+import { listExpenses } from "./expenses";
+import { listInvoices } from "./invoices";
 import { addMonths, firstOfMonth, lastOfMonth } from "@/lib/dates";
 import { CLOSED_LEAD_STATUSES, OPEN_SESSION_STATUSES, OPERATIVE_CLIENT_STATUSES } from "@/lib/domain";
 import { round2, toBase } from "@/lib/money";
@@ -212,4 +216,119 @@ export async function managementDashboard(ctx: Ctx) {
     out.payrollNet = pr.net;
   }
   return out;
+}
+
+// ───────────────────────── Informes por período ─────────────────────────
+
+
+export type ReportFilters = { from: string; to: string; clientId?: string; department?: string; responsibleId?: string; status?: string };
+
+export const DATASETS = {
+  produccion: "Producción por cliente y mes",
+  entregables: "Entregables (diseños y reels)",
+  publicaciones: "Cumplimiento de publicaciones",
+  ventas: "Llamadas y gestiones de ventas",
+  tareas: "Tareas",
+  facturas: "Facturas y cobros",
+  gastos: "Gastos",
+} as const;
+export type Dataset = keyof typeof DATASETS;
+
+const DATASET_PERMS: Record<Dataset, Parameters<typeof can>[1]> = {
+  produccion: "production.read",
+  entregables: "production.read",
+  publicaciones: "publications.read",
+  ventas: "leads.read",
+  tareas: "tasks.read",
+  facturas: "finance.read",
+  gastos: "expenses.read",
+};
+
+export function availableDatasets(ctx: Ctx) {
+  return (Object.keys(DATASETS) as Dataset[]).filter((k) => can(ctx, DATASET_PERMS[k]));
+}
+
+/** Filas de un informe (mismas que se exportan a CSV). */
+export async function reportRows(ctx: Ctx, dataset: Dataset, f: ReportFilters): Promise<Record<string, string | number | null>[]> {
+  requirePerm(ctx, "reports.read");
+  requirePerm(ctx, DATASET_PERMS[dataset]);
+  const fromP = firstOfMonth(f.from);
+  switch (dataset) {
+    case "produccion": {
+      const rows: Record<string, string | number | null>[] = [];
+      for (let p = fromP; p <= f.to; p = addMonths(p, 1)) {
+        const list = await productionOverview(ctx, { period: p, clientId: f.clientId, designerId: f.responsibleId, status: f.status });
+        list.forEach((r) => rows.push({ mes: p.slice(0, 7), cliente: r.clientName, disenos: `${r.designs.done}/${r.designs.total}`, perfil_portada: `${r.profileCover.done}/${r.profileCover.total}`, reels: `${r.reels.done}/${r.reels.total}`, avance: Math.round(r.progress * 1000) / 10, estado: r.status, retraso: r.delayed ? "sí" : "no", disenador: r.designer, editor: r.editor }));
+      }
+      return rows;
+    }
+    case "entregables": {
+      const conds = [gte(pb.period, fromP), lte(pb.period, f.to)];
+      if (f.clientId) conds.push(eq(pd.clientId, f.clientId));
+      if (f.responsibleId) conds.push(eq(pd.assigneeId, f.responsibleId));
+      if (f.status) conds.push(eq(pd.status, f.status));
+      const rows = await ctx.tx
+        .select({ d: pd, period: pb.period, client: clients.tradeName, assignee: employees.fullName })
+        .from(pd)
+        .innerJoin(pb, eq(pb.id, pd.boardId))
+        .innerJoin(clients, eq(clients.id, pd.clientId))
+        .leftJoin(employees, eq(employees.id, pd.assigneeId))
+        .where(and(...conds));
+      return rows.map((r) => ({ mes: r.period.slice(0, 7), cliente: r.client, entregable: r.d.title, tipo: r.d.kind, responsable: r.assignee, fecha_limite: r.d.dueDate, estado: r.d.status, completado: r.d.completedAt?.toISOString() ?? null, archivo: r.d.finalFileUrl }));
+    }
+    case "publicaciones": {
+      const scope = f.clientId ? `client:${f.clientId}` : f.responsibleId ? `cm:${f.responsibleId}` : "total";
+      const rows = await complianceHistory(ctx, { from: f.from, to: f.to, groupBy: "day", scope });
+      return rows.map((r) => ({ dia: r.key, previstas: r.planned, publicadas: r.published, fallidas: r.failed, pendientes: r.pending, cumplimiento: r.ratio === null ? null : Math.round(r.ratio * 1000) / 10, clientes_cumplieron: `${r.clientsCompliant}/${r.clientsPlanned}` }));
+    }
+    case "ventas": {
+      const conds = [gte(leadCalls.calledAt, new Date(`${f.from}T00:00:00-06:00`)), lte(leadCalls.calledAt, new Date(`${f.to}T23:59:59-06:00`))];
+      if (f.responsibleId) conds.push(eq(leadCalls.agentId, f.responsibleId));
+      const rows = await ctx.tx
+        .select({ c: leadCalls, lead: leads.tradeName, agent: employees.fullName })
+        .from(leadCalls)
+        .innerJoin(leads, eq(leads.id, leadCalls.leadId))
+        .leftJoin(employees, eq(employees.id, leadCalls.agentId))
+        .where(and(...conds));
+      return rows.map((r) => ({ fecha: r.c.calledAt.toISOString(), prospecto: r.lead, agente: r.agent, canal: r.c.channel, resultado: r.c.result, interes: r.c.interestLevel, estado_resultante: r.c.statusAfter, proxima_accion: r.c.nextAction, seguimiento: r.c.nextFollowupAt }));
+    }
+    case "tareas": {
+      const conds = [orOp(and(gte(tasks.dueDate, f.from), lte(tasks.dueDate, f.to)), and(gte(tasks.createdAt, new Date(`${f.from}T00:00:00-06:00`)), lte(tasks.createdAt, new Date(`${f.to}T23:59:59-06:00`))))!];
+      if (f.clientId) conds.push(eq(tasks.clientId, f.clientId));
+      if (f.department) conds.push(eq(tasks.department, f.department));
+      if (f.responsibleId) conds.push(eq(tasks.assigneeId, f.responsibleId));
+      if (f.status) conds.push(eq(tasks.status, f.status));
+      const rows = await ctx.tx
+        .select({ t: tasks, client: clients.tradeName, assignee: employees.fullName })
+        .from(tasks)
+        .leftJoin(clients, eq(clients.id, tasks.clientId))
+        .leftJoin(employees, eq(employees.id, tasks.assigneeId))
+        .where(and(...conds));
+      return rows.map((r) => ({ tarea: r.t.title, cliente: r.client, departamento: r.t.department, responsable: r.assignee, vence: r.t.dueDate, estado: r.t.status, completada: r.t.completedAt?.toISOString() ?? null, atrasada: r.t.dueDate && r.t.dueDate < ctx.today && ["pendiente", "en_progreso"].includes(r.t.status) ? "sí" : "no" }));
+    }
+    case "facturas": {
+      const rows = await listInvoices(ctx, { from: f.from, to: f.to, clientId: f.clientId, status: f.status });
+      return rows.map((i) => ({ numero: i.number, cliente: i.clientName, concepto: i.concept, emision: i.issueDate, vencimiento: i.dueDate, importe: i.amount, pagado: i.paidAmount, saldo: i.balance, moneda: i.currency, estado: i.status }));
+    }
+    case "gastos": {
+      const rows: Record<string, string | number | null>[] = [];
+      for (let p = fromP; p <= f.to; p = addMonths(p, 1)) {
+        const list = await listExpenses(ctx, { period: p, status: f.status });
+        list
+          .filter((e) => e.accountingDate >= f.from && e.accountingDate <= f.to && (!f.clientId || e.clientId === f.clientId) && (!f.department || e.department === f.department))
+          .forEach((e) => rows.push({ fecha_contable: e.accountingDate, gasto: e.name, categoria: e.categoryName, proveedor: e.supplier, importe: e.amount, pagado: e.paidAmount, saldo: e.balance, moneda: e.currency, vence: e.dueDate, estado: e.status, origen: e.sourceType }));
+      }
+      return rows;
+    }
+  }
+}
+
+export function toCSV(rows: Record<string, string | number | null>[]) {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const esc = (v: unknown) => {
+    const s = v == null ? "" : String(v);
+    return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return "﻿" + [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
 }

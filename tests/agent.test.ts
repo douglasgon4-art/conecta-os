@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { as, asSystem, at, makeUser, standardContract, uniq } from "./helpers";
 import { setAgentProvider, type AgentProvider, type CompletionRequest } from "@/server/agent/provider";
-import { resolvePendingAction, runAgentTurn } from "@/server/agent/runner";
+import { resolvePendingAction, runAgentTurn as runRaw, type AgentTurnResult } from "@/server/agent/runner";
+
+type Ok = Extract<AgentTurnResult, { status: "ok" | "refused" | "incomplete" }>;
+const runAgentTurn = async (...a: Parameters<typeof runRaw>) => (await runRaw(...a)) as Ok;
 import { aiActionLogs, employees, employeeSalaryHistory, expenses, leads, auditLogs } from "@/server/db/schema";
 import { createClient } from "@/server/services/clients";
 import { getBoardByClientPeriod } from "@/server/services/production";

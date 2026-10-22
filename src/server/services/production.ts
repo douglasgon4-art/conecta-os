@@ -260,7 +260,10 @@ export const deliverableUpdateInput = z.object({
   status: zText(40),
   assigneeId: z.preprocess((v) => (v === "" ? null : v), z.uuid().nullable().optional()),
   dueDate: zDate(),
-  finalFileUrl: z.preprocess((v) => (v === "" ? null : v), z.url("Enlace inválido").nullable().optional()),
+  finalFileUrl: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.union([z.url("Enlace inválido"), z.string().regex(/^\/api\/archivos\/[0-9a-f-]{36}$/)]).nullable().optional(),
+  ),
   finalFileAssetId: zUuid(),
   title: zText(200),
   scriptRef: zText(4000),
