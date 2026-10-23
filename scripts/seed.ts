@@ -112,12 +112,12 @@ export async function seed(url = process.env.DATABASE_OWNER_URL!, opts: { adminE
           payrollCurrency: "NIO",
         }),
         [
-          "Código del Trabajo (Ley 185), arts. 76 (vacaciones: 15 días por cada 6 meses) y 93-97 (décimo tercer mes).",
-          "Ley de Concertación Tributaria (Ley 822) y reformas (Ley 987): tabla progresiva de IR sobre rentas del trabajo (art. 23).",
-          "INSS: cotización laboral 7 %, patronal 21.5 % (menos de 50 trabajadores) o 22.5 %; INATEC 2 %.",
-          "Fuentes consultadas (secundarias): wageindicator.org/es-ni, laprensani.com (2022), toptrabajos.com/ni, unan.edu.ni/LEY-822.pdf.",
+          "Código del Trabajo (Ley 185): art. 76 — 15 días de vacaciones por cada 6 meses de trabajo ininterrumpido; art. 94 — el décimo tercer mes se paga con el último mes de salario (si el salario es variable por comisiones, obra o destajo: el más alto de los últimos 6 meses); art. 95 — pago en los primeros 10 días de diciembre o al terminar el contrato. Textos: ineter.gob.ni/wp-content/uploads/2024/11/Codigo-del-Trabajo.pdf, oig.cepal.org/sites/default/files/1996_codtrabajo_nic.pdf.",
+          "INSS régimen integral: laboral 7 %; patronal 21.5 % para empleadores con menos de 50 trabajadores (sitio oficial: inss-princ.inss.gob.ni › Regímenes de afiliación). El 22.5 % para 50 o más solo aparece en fuentes secundarias. Sin techo de cotización (Resolución RI-112-2018, según fuentes secundarias).",
+          "INATEC: 2 % patronal sobre la nómina bruta (fuentes secundarias).",
+          "IR rentas del trabajo: Ley 822, art. 23 (reformada por Ley 891): exento hasta C$100,000 anuales; 15 % sobre el exceso hasta C$200,000; C$15,000 + 20 % hasta C$350,000; C$45,000 + 25 % hasta C$500,000; C$82,500 + 30 % sobre el exceso. Base: salario menos INSS laboral, proyectado a 12 meses. Tabla confirmada en varias fuentes secundarias; falta verificarla en la DGI o La Gaceta.",
         ].join("\n"),
-        "PENDIENTE DE VALIDACIÓN: valores de referencia tomados de fuentes secundarias. Verificar contra La Gaceta, INSS, DGI y MITRAB antes de aprobar nóminas definitivas. Confirmar la tasa patronal según el número de trabajadores y la base de cálculo del aguinaldo.",
+        "PENDIENTE DE VALIDACIÓN POR GERENCIA O POR EL CONTADOR. Confirmado en fuente oficial: INSS laboral 7 % y patronal 21.5 % (<50 trabajadores); base del aguinaldo = último salario (art. 94); vacaciones 2.5 días por mes (art. 76). Por confirmar en fuente oficial: INATEC 2 % y la tabla de IR vigente (DGI).",
       ],
     );
 
@@ -128,7 +128,8 @@ export async function seed(url = process.env.DATABASE_OWNER_URL!, opts: { adminE
       const hash = await bcrypt.hash(adminPassword, 10);
       const { rows } = await c.query("insert into users(email,name,password_hash) values($1,$2,$3) returning id", [adminEmail, "Gerencia CONECTA", hash]);
       await c.query("insert into user_roles(user_id, role_id) select $1, id from roles where key='gerencia'", [rows[0].id]);
-      if (!opts.quiet) console.log(`✓ Usuario inicial: ${adminEmail} / ${adminPassword}  (cámbialo después de entrar)`);
+      // Si la contraseña viene de una variable de entorno no se imprime (los registros de despliegue pueden ser visibles).
+      if (!opts.quiet) console.log(`✓ Usuario inicial: ${adminEmail}${opts.adminPassword ?? process.env.SEED_ADMIN_PASSWORD ? "" : ` / ${adminPassword}`}  (cambia la contraseña después de entrar)`);
     }
     await c.query("COMMIT");
   } catch (e) {

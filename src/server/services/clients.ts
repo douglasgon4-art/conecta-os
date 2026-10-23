@@ -243,7 +243,7 @@ export type CreateClientResult = { client: typeof clients.$inferSelect; contract
  */
 export async function createClient(
   ctx: Ctx,
-  raw: { client: ClientInput; contract: ContractInput; leadId?: string | null; status?: ClientStatus },
+  raw: { client: ClientInput; contract: ContractInput; leadId?: string | null; status?: ClientStatus; onboarding?: boolean },
   opts: { allowDuplicate?: boolean } = {},
 ): Promise<CreateClientResult> {
   requirePerm(ctx, "clients.write", "leads.convert");
@@ -274,7 +274,7 @@ export async function createClient(
     .returning();
   await recordStatus(ctx, client.id, null, status, "Alta de cliente");
   const contract = await insertContract(ctx, client.id, c);
-  const workspace = await initializeClientWorkspace(ctx, client.id, { firstSessionDate: c.firstSessionDate });
+  const workspace = await initializeClientWorkspace(ctx, client.id, { firstSessionDate: c.firstSessionDate, onboarding: raw.onboarding });
 
   await audit(ctx, {
     action: "client.create",

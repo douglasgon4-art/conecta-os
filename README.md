@@ -15,8 +15,11 @@ facturación y cobros, informes, automatizaciones y un asistente de IA que ejecu
 - Anthropic Claude (`@anthropic-ai/sdk`) para el asistente (configurable)
 - Vitest (integración contra PostgreSQL real) · Playwright (E2E)
 
-Más detalle en [`docs/PLAN.md`](docs/PLAN.md) (arquitectura) y [`docs/FASES.md`](docs/FASES.md) (qué se hizo en cada fase,
-pruebas y pendientes).
+Más detalle en [`docs/PLAN.md`](docs/PLAN.md) (arquitectura), [`docs/FASES.md`](docs/FASES.md) (qué se hizo en cada fase,
+pruebas y pendientes) y [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md) (**publicar en Supabase + Vercel paso a paso**).
+
+Para cargar tus datos actuales: *Configuración → Importar datos* (plantillas CSV de clientes, colaboradores y
+prospectos, con vista previa y detección de duplicados).
 
 ## Puesta en marcha local
 
@@ -103,7 +106,7 @@ definitivas.
 ## Pruebas
 
 ```bash
-npm test            # 62 pruebas de integración (Vitest) contra la base conecta_test (se reinicia sola)
+npm test            # 65 pruebas de integración (Vitest) contra la base conecta_test (se reinicia sola)
 npm run build && npm run test:e2e   # 7 pruebas E2E (Playwright) contra conecta_e2e
 npm run typecheck
 ```
