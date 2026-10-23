@@ -31,8 +31,9 @@ class SupabaseStorage implements FileStorage {
   private endpoint(key: string) {
     return `${this.url.replace(/\/$/, "")}/storage/v1/object/${this.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
   }
-  private headers(extra: Record<string, string> = {}) {
-    return { Authorization: `Bearer ${this.key}`, apikey: this.key, ...extra };
+  // Claves nuevas (sb_secret_…) van solo en `apikey`; las antiguas service_role (JWT) también como Bearer.
+  private headers(extra: Record<string, string> = {}): Record<string, string> {
+    return { apikey: this.key, ...(this.key.startsWith("eyJ") ? { Authorization: `Bearer ${this.key}` } : {}), ...extra };
   }
   async save(data: Buffer, originalName: string) {
     const ext = path.extname(originalName).toLowerCase().replace(/[^.a-z0-9]/g, "").slice(0, 10);
