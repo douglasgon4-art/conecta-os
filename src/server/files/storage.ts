@@ -52,4 +52,4 @@ class SupabaseStorage implements FileStorage {
 export const storage: FileStorage =
   process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
     ? new SupabaseStorage(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, process.env.SUPABASE_STORAGE_BUCKET ?? "conecta-archivos")
-    : new LocalStorage(path.resolve(process.env.FILE_STORAGE_DIR ?? "./storage"));
+    : new LocalStorage(path.resolve(/* turbopackIgnore: true */ process.cwd(), process.env.FILE_STORAGE_DIR ?? "./storage"));
