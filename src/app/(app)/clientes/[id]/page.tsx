@@ -28,6 +28,7 @@ import {
   TASK_STATUSES,
   VIDEO_STATUSES,
   labelOf,
+  weekdayNames,
 } from "@/lib/domain";
 import { addDays, firstOfMonth, formatDate, formatDateTime, formatPeriod } from "@/lib/dates";
 import { formatMoney, formatPercent } from "@/lib/money";
@@ -75,7 +76,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
     if ((tab === "estrategia" || tab === "aprobaciones") && perms.strategy) data.plans = await clientPlans(ctx, id);
     if (tab === "produccion" && perms.production) data.boards = await clientBoards(ctx, id);
     if ((tab === "disenos" || tab === "videos") && perms.production) {
-      const kinds = tab === "videos" ? ["reel"] : ["diseno", "perfil", "portada"];
+      const kinds = tab === "videos" ? ["reel"] : ["diseno", "perfil", "portada", "story"];
       data.deliverables = await ctx.tx
         .select({ d: productionDeliverables, period: productionBoards.period, assignee: employeesTable.fullName })
         .from(productionDeliverables)
@@ -127,7 +128,9 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                 ["Paquete", c.contract.name],
                 ...(perms.finance ? [["Precio mensual", formatMoney(c.contract.monthlyPrice, c.contract.currency)] as [string, string]] : []),
                 ["Día de pago", c.contract.billingDay],
-                ["Artes / reels", `${c.contract.designsPerMonth} artes · ${c.contract.reelsPerMonth} reels`],
+                ["Artes / reels / stories", `${c.contract.designsPerMonth} artes · ${c.contract.reelsPerMonth} reels · ${c.contract.storiesPerMonth} stories`],
+                ["Días de publicación", c.contract.postWeekdays.length ? `Artes y reels: ${weekdayNames(c.contract.postWeekdays)}` : "Sin días fijos"],
+                ...(c.contract.storyWeekdays.length ? [["Días de stories", weekdayNames(c.contract.storyWeekdays)] as [string, string]] : []),
                 ["Perfil / portada", `${c.contract.includeProfilePhoto ? "Sí" : "No"} / ${c.contract.includeCover ? "Sí" : "No"}`],
                 ["Sesión", c.contract.sessionsEnabled ? `Cada ${c.contract.sessionFrequencyMonths} mes(es)` : "No incluida"],
                 ["Redes", c.contract.socialNetworks.map((n) => labelOf(SOCIAL_NETWORKS, n)).join(", ") || "—"],
@@ -148,7 +151,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
                 <Link key={b.id} href={`/produccion/${b.id}`} className="mb-3 block">
                   <div className="flex justify-between text-sm"><span className="font-medium">{formatPeriod(b.period)}</span><StatusBadge list={BOARD_STATUSES} value={b.cancelledAt ? "pendiente" : b.status} /></div>
                   <Progress value={b.progress} tone={b.delayed ? "red" : undefined} />
-                  <div className="mt-1 text-xs text-slate-500">{b.done}/{b.total} · diseños {b.designs.done}/{b.designs.total} · perfil/portada {b.profileCover.done}/{b.profileCover.total} · reels {b.reels.done}/{b.reels.total}</div>
+                  <div className="mt-1 text-xs text-slate-500">{b.done}/{b.total} · diseños {b.designs.done}/{b.designs.total} · perfil/portada {b.profileCover.done}/{b.profileCover.total} · reels {b.reels.done}/{b.reels.total}{b.stories.total > 0 && ` · stories ${b.stories.done}/${b.stories.total}`}</div>
                 </Link>
               )) : <Empty>Sin tableros.</Empty>}
             </Card>
@@ -201,7 +204,7 @@ export default async function ClientDetail({ params, searchParams }: { params: P
       ) : <Empty>Sin acceso a producción.</Empty>)}
 
       {(tab === "disenos" || tab === "videos") && (D.deliverables ? (
-        <Card title={tab === "videos" ? "Reels" : "Artes, perfil y portada"} padded={false}>
+        <Card title={tab === "videos" ? "Reels" : "Artes, perfil, portada y stories"} padded={false}>
           <Table><thead><tr><Th>Mes</Th><Th>Entregable</Th><Th>Responsable</Th><Th>Fecha límite</Th><Th>Archivo</Th><Th>Estado</Th></tr></thead>
             <tbody>{D.deliverables.map((r: Any) => (
               <tr key={r.d.id}><Td>{formatPeriod(r.period)}</Td><Td><Link className="hover:underline" href={`/produccion/${r.d.boardId}`}>{r.d.title}</Link></Td><Td>{r.assignee ?? "—"}</Td><Td>{formatDate(r.d.dueDate)}</Td><Td>{r.d.finalFileUrl ? <a className="text-brand-700 underline" href={r.d.finalFileUrl} target="_blank" rel="noreferrer">Abrir</a> : "—"}</Td><Td><StatusBadge list={r.d.kind === "reel" ? VIDEO_STATUSES : DESIGN_STATUSES} value={r.d.status} /></Td></tr>

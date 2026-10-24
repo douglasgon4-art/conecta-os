@@ -39,12 +39,12 @@ export function contractInvoiceDates(contract: Pick<Contract, "startDate" | "bil
  * Genera la cuenta por cobrar del período facturable del contrato (si corresponde y ya llegó la fecha de emisión).
  * Nunca la marca como pagada. Idempotente por source_key.
  */
-export async function ensureContractInvoice(ctx: Ctx, client: Client, contract: Contract, period: string, settings: Settings) {
+export async function ensureContractInvoice(ctx: Ctx, client: Client, contract: Contract, period: string, settings: Settings, opts: { evenIfNotIssued?: boolean } = {}) {
   const idx = monthsBetween(firstOfMonth(contract.startDate), period);
   if (idx < 0 || idx % contract.billingFrequencyMonths !== 0) return null;
   if (contract.monthlyPrice <= 0) return null;
   const { issueDate, dueDate } = contractInvoiceDates(contract, period, settings.invoice_issue_days_before);
-  if (issueDate > ctx.today && idx > 0) return null; // la primera se emite al registrar el contrato
+  if (issueDate > ctx.today && idx > 0 && !opts.evenIfNotIssued) return null; // la primera se emite al registrar el contrato
   const sourceKey = `contract:${contract.id}:${period}`;
   return ctx.elevate(async () => {
     const [existing] = await ctx.tx.select().from(invoices).where(eq(invoices.sourceKey, sourceKey));

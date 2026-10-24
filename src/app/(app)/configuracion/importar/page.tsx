@@ -19,7 +19,9 @@ export default async function ImportPage() {
         <ImportForm kinds={d.kinds} />
         <ul className="mt-4 list-disc space-y-1 pl-5 text-xs text-slate-600">
           <li>Cada fila pasa por las mismas validaciones que la pantalla: se detectan duplicados y no se crea nada a medias.</li>
-          <li>Los clientes importados como «activo» no generan tareas de incorporación. Sí se crean sus espacios del mes actual y del siguiente, incluida la cuenta por cobrar del mes en curso; anúlala si ya la facturaste por fuera.</li>
+          <li>Los clientes importados como «activo» no generan tareas de incorporación. Sí se crean sus espacios del mes actual y del siguiente, incluida la cuenta por cobrar del mes en curso. Si ese mes ya está cobrado, pon el mes en «pagado_hasta» (por ejemplo 2026-10) y quedará registrado como pagado.</li>
+          <li>«dias_publicacion» y «dias_stories»: días separados por «|», por ejemplo lunes|miercoles|viernes. Las fechas tentativas de publicación se reparten solas en esos días.</li>
+          <li>«vacaciones_pagadas_hasta» (colaboradores): las vacaciones acumuladas hasta esa fecha se descuentan del saldo porque ya se pagaron.</li>
           <li>Usa primero «Vista previa» para revisar los errores sin guardar nada.</li>
         </ul>
       </Card>

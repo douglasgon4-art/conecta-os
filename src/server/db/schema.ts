@@ -5,6 +5,7 @@ import {
   text,
   boolean,
   integer,
+  smallint,
   numeric,
   date,
   time,
@@ -282,6 +283,10 @@ export const clientContracts = pgTable(
     includeStrategy: boolean("include_strategy").notNull().default(true),
     includeCommunity: boolean("include_community").notNull().default(true),
     socialNetworks: text("social_networks").array().notNull().default(sql`'{}'::text[]`),
+    storiesPerMonth: integer("stories_per_month").notNull().default(0),
+    /** Días de la semana (1 = lunes … 7 = domingo) para artes y reels, y para stories. */
+    postWeekdays: smallint("post_weekdays").array().notNull().default(sql`'{}'::smallint[]`),
+    storyWeekdays: smallint("story_weekdays").array().notNull().default(sql`'{}'::smallint[]`),
     servicesNotes: text("services_notes"),
     status: text("status").notNull().default("vigente"),
     documentAssetId: uuid("document_asset_id"),
@@ -292,8 +297,9 @@ export const clientContracts = pgTable(
   (t) => [
     uniqueIndex("contracts_one_active_uq").on(t.clientId).where(sql`${t.status} = 'vigente'`),
     check("contracts_status_ck", sql`${t.status} in ('vigente','finalizado','cancelado')`),
-    check("contracts_billing_day_ck", sql`${t.billingDay} between 1 and 28`),
-    check("contracts_counts_ck", sql`${t.designsPerMonth} >= 0 and ${t.reelsPerMonth} >= 0`),
+    check("contracts_billing_day_ck", sql`${t.billingDay} between 1 and 31`),
+    check("contracts_counts_ck", sql`${t.designsPerMonth} >= 0 and ${t.reelsPerMonth} >= 0 and ${t.storiesPerMonth} >= 0`),
+    check("contracts_weekdays_ck", sql`${t.postWeekdays} <@ '{1,2,3,4,5,6,7}'::smallint[] and ${t.storyWeekdays} <@ '{1,2,3,4,5,6,7}'::smallint[]`),
     check("contracts_freq_ck", sql`${t.sessionFrequencyMonths} >= 1 and ${t.billingFrequencyMonths} >= 1`),
     check("contracts_price_ck", sql`${t.monthlyPrice} >= 0`),
   ],
@@ -668,7 +674,7 @@ export const productionDeliverables = pgTable(
   (t) => [
     uniqueIndex("deliverables_uq").on(t.boardId, t.kind, t.position, t.platform),
     index("deliverables_assignee_idx").on(t.assigneeId),
-    check("deliverables_kind_ck", sql`${t.kind} in ('diseno','perfil','portada','reel')`),
+    check("deliverables_kind_ck", sql`${t.kind} in ('diseno','perfil','portada','reel','story')`),
     check(
       "deliverables_status_ck",
       sql`(${t.kind} = 'reel' and ${t.status} in ('pendiente_material','material_recibido','en_edicion','revision_interna','pendiente_cambios','aprobado','editado'))

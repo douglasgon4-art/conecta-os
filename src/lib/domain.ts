@@ -111,6 +111,7 @@ export const DELIVERABLE_KINDS = catalog([
   { value: "perfil", label: "Foto de perfil", tone: "blue" },
   { value: "portada", label: "Portada", tone: "blue" },
   { value: "reel", label: "Reel", tone: "blue" },
+  { value: "story", label: "Story", tone: "blue" },
 ] as const);
 export type DeliverableKind = (typeof DELIVERABLE_KINDS)[number]["value"];
 export const COMPLETED_DELIVERABLE_STATUSES = ["finalizado", "editado"] as const;
@@ -161,6 +162,17 @@ export const TASK_STATUSES = catalog([
   { value: "completada", label: "Completada", tone: "green" },
   { value: "cancelada", label: "Cancelada", tone: "gray" },
 ] as const);
+
+export const WEEKDAYS = catalog([
+  { value: "1", label: "Lunes", tone: "gray" },
+  { value: "2", label: "Martes", tone: "gray" },
+  { value: "3", label: "Miércoles", tone: "gray" },
+  { value: "4", label: "Jueves", tone: "gray" },
+  { value: "5", label: "Viernes", tone: "gray" },
+  { value: "6", label: "Sábado", tone: "gray" },
+  { value: "7", label: "Domingo", tone: "gray" },
+] as const);
+export const weekdayNames = (days: readonly number[]) => days.map((d) => WEEKDAYS[d - 1]?.label.toLowerCase()).filter(Boolean).join(", ");
 
 export const DEPARTMENTS = catalog([
   { value: "gerencia", label: "Gerencia", tone: "blue" },

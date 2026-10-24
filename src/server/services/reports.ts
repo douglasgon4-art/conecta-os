@@ -199,9 +199,9 @@ export async function managementDashboard(ctx: Ctx) {
       ready: rows.filter((r) => r.status === "listo_para_publicar").length,
       incomplete: rows.filter((r) => r.status !== "listo_para_publicar").length,
       delayed: rows.filter((r) => r.delayed).length,
-      designsPending: rows.reduce((a, r) => a + (r.designs.total - r.designs.done) + (r.profileCover.total - r.profileCover.done), 0),
+      designsPending: rows.reduce((a, r) => a + (r.designs.total - r.designs.done) + (r.profileCover.total - r.profileCover.done) + (r.stories.total - r.stories.done), 0),
       reelsPending: rows.reduce((a, r) => a + (r.reels.total - r.reels.done), 0),
-      rows: rows.map((r) => ({ id: r.id, clientName: r.clientName, progress: r.progress, status: r.status, delayed: r.delayed, designs: r.designs, profileCover: r.profileCover, reels: r.reels })),
+      rows: rows.map((r) => ({ id: r.id, clientName: r.clientName, progress: r.progress, status: r.status, delayed: r.delayed, designs: r.designs, profileCover: r.profileCover, reels: r.reels, stories: r.stories })),
     };
   }
   if (can(ctx, "publications.read")) out.publications = (await dailyCompliance(ctx, ctx.today)).total;
@@ -258,7 +258,7 @@ export async function reportRows(ctx: Ctx, dataset: Dataset, f: ReportFilters): 
       const rows: Record<string, string | number | null>[] = [];
       for (let p = fromP; p <= f.to; p = addMonths(p, 1)) {
         const list = await productionOverview(ctx, { period: p, clientId: f.clientId, designerId: f.responsibleId, status: f.status });
-        list.forEach((r) => rows.push({ mes: p.slice(0, 7), cliente: r.clientName, disenos: `${r.designs.done}/${r.designs.total}`, perfil_portada: `${r.profileCover.done}/${r.profileCover.total}`, reels: `${r.reels.done}/${r.reels.total}`, avance: Math.round(r.progress * 1000) / 10, estado: r.status, retraso: r.delayed ? "sí" : "no", disenador: r.designer, editor: r.editor }));
+        list.forEach((r) => rows.push({ mes: p.slice(0, 7), cliente: r.clientName, disenos: `${r.designs.done}/${r.designs.total}`, perfil_portada: `${r.profileCover.done}/${r.profileCover.total}`, reels: `${r.reels.done}/${r.reels.total}`, stories: `${r.stories.done}/${r.stories.total}`, avance: Math.round(r.progress * 1000) / 10, estado: r.status, retraso: r.delayed ? "sí" : "no", disenador: r.designer, editor: r.editor }));
       }
       return rows;
     }

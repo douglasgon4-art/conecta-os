@@ -62,6 +62,18 @@ export function withDay(period: string, day: number): string {
   return makeISO(y, m, Math.min(day, daysInMonth(y, m)));
 }
 
+/** Fechas del mes que caen en los días de la semana indicados (1 = lunes … 7 = domingo), en orden. */
+export function weekdayDatesInMonth(period: string, weekdays: readonly number[]): string[] {
+  const { y, m } = parseISO(period);
+  const set = new Set(weekdays);
+  const out: string[] = [];
+  for (let d = 1; d <= daysInMonth(y, m); d++) {
+    const wd = new Date(Date.UTC(y, m - 1, d)).getUTCDay() || 7;
+    if (set.has(wd)) out.push(makeISO(y, m, d));
+  }
+  return out;
+}
+
 export function monthsBetween(fromPeriod: string, toPeriod: string): number {
   const a = parseISO(fromPeriod);
   const b = parseISO(toPeriod);

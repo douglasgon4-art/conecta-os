@@ -94,6 +94,17 @@ aplicación compilada en un navegador Chromium.
   recorrido por todas las pantallas, permisos del diseñador y endpoint de cron.
 - Documentación: `README.md`, `docs/PLAN.md` y este archivo.
 
+## Ajustes tras la carga de datos reales
+
+- Contratos con **stories al mes** (las hace Diseño y forman parte del tablero) y **días fijos de publicación**:
+  artes y reels (p. ej. lunes, miércoles y viernes) y stories (p. ej. martes, jueves y sábado). Las fechas tentativas
+  de la planificación y las publicaciones de stories se reparten solas en esos días.
+- Día de pago de 1 a 31 (en meses cortos se usa el último día).
+- Importador: `pagado_hasta` registra como cobrados los meses ya pagados antes de usar el sistema y
+  `vacaciones_pagadas_hasta` descuenta del saldo las vacaciones ya pagadas, siempre con registro trazado.
+
+**Migración:** `0003_stories_schedule.sql`. **Prueba:** `importer` › stories, días fijos, día 30, meses pagados y vacaciones.
+
 ## Criterios de aceptación → pruebas
 
 | Área | Criterio | Prueba |

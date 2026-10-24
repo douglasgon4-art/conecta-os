@@ -29,6 +29,8 @@ export async function convertLeadAction(_: ActionState, fd: FormData) {
   const contract = { ...((o.contract ?? {}) as Record<string, unknown>) };
   for (const k of ["sessionsEnabled", "includeProfilePhoto", "includeCover", "includeStrategy", "includeCommunity"]) contract[k] = contract[k] === "on";
   contract.socialNetworks = o.networks ? ([] as unknown[]).concat(o.networks) : [];
+  contract.postWeekdays = o.postDays ?? [];
+  contract.storyWeekdays = o.storyDays ?? [];
   if (!isConfirmed(o)) return { ok: false, confirm: "Se marcará la venta como ganada: se creará (o vinculará) el cliente, su contrato, espacios de trabajo y la cuenta por cobrar. ¿Confirmas?", at: Date.now() };
   return run(
     (ctx) =>

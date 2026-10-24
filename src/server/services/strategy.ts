@@ -4,7 +4,7 @@ import { clients, contentPlanItems, employees, monthlyContentPlans, productionBo
 import { audit, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
 import { Loose, parse, zDate, zText } from "../validation";
-import { addDays, addMonths, firstOfMonth, formatPeriod, maxDate } from "@/lib/dates";
+import { addDays, addMonths, firstOfMonth, formatPeriod, maxDate, weekdayDatesInMonth } from "@/lib/dates";
 import { COMPLETED_DELIVERABLE_STATUSES, OPERATIVE_CLIENT_STATUSES, PLAN_STATUSES, labelOf, values, type PlanStatus } from "@/lib/domain";
 import type { Client, Contract } from "./workspace";
 import type { Settings } from "./settings";
@@ -33,10 +33,18 @@ export async function ensurePlan(ctx: Ctx, client: Client, contract: Contract, p
     .returning();
   if (inserted.length) {
     const plan = inserted[0];
-    const items = [
+    const items: { planId: string; kind: string; position: number; tentativePublishDate?: string }[] = [
       ...Array.from({ length: contract.reelsPerMonth }, (_, i) => ({ planId: plan.id, kind: "reel", position: i + 1 })),
       ...Array.from({ length: contract.designsPerMonth }, (_, i) => ({ planId: plan.id, kind: "diseno", position: i + 1 })),
     ];
+    // Días fijos de publicación: se alternan arte y reel (arte 1, reel 1, arte 2, …) sobre los días del mes.
+    const postDays = contract.postWeekdays.length ? weekdayDatesInMonth(period, contract.postWeekdays) : [];
+    if (postDays.length) {
+      const order = [...items].sort((x, y) => x.position - y.position || (x.kind === "diseno" ? -1 : 1));
+      order.forEach((it, i) => {
+        if (postDays[i]) it.tentativePublishDate = postDays[i];
+      });
+    }
     if (items.length) await ctx.tx.insert(contentPlanItems).values(items).onConflictDoNothing();
     return { plan, created: true };
   }

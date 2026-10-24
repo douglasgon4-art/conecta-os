@@ -85,11 +85,12 @@ export default async function BoardPage({ params }: { params: Promise<{ id: stri
         subtitle={<span className="flex flex-wrap items-center gap-2"><StatusBadge list={BOARD_STATUSES} value={b.status} />{b.readyAt && <Badge tone="green">Habilitado para Community Management desde {formatDateTime(b.readyAt)}</Badge>}<Link className="text-brand-700 underline" href={`/clientes/${b.clientId}?tab=produccion`}>Historial del cliente</Link></span>}
       />
       {b.cancelledAt && <div className="mb-4 rounded-md bg-slate-100 p-3 text-sm">Tablero cancelado: {b.cancelReason}. Se conserva como historial.</div>}
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-6">
         <Stat label="Avance" value={formatPercent(b.progress)} hint={`${b.done}/${b.total} entregables`} tone={b.delayed ? "red" : b.done === b.total ? "green" : undefined} />
         <Stat label="Diseños" value={`${b.designs.done}/${b.designs.total}`} />
         <Stat label="Perfil y portada" value={`${b.profileCover.done}/${b.profileCover.total}`} />
         <Stat label="Reels" value={`${b.reels.done}/${b.reels.total}`} />
+        <Stat label="Stories" value={b.stories.total ? `${b.stories.done}/${b.stories.total}` : "—"} />
         <Stat label="Fecha límite" value={formatDate(b.dueDate)} hint={b.delayed ? `${b.overdueCount} entregable(s) atrasado(s)` : undefined} tone={b.delayed ? "red" : undefined} />
       </div>
       <div className="mb-4"><Progress value={b.progress} tone={b.delayed ? "red" : undefined} /></div>

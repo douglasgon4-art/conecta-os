@@ -13,7 +13,7 @@ import {
 import { audit, can, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, forbidden, notFound } from "../errors";
 import { Loose, parse, zDate, zText, zUuid } from "../validation";
-import { addMonths, firstOfMonth, formatPeriod, lastOfMonth, withDay } from "@/lib/dates";
+import { addMonths, firstOfMonth, formatPeriod, lastOfMonth, weekdayDatesInMonth, withDay } from "@/lib/dates";
 import {
   COMPLETED_DELIVERABLE_STATUSES,
   completedStatusFor,
@@ -31,16 +31,17 @@ type Deliverable = typeof productionDeliverables.$inferSelect;
 type Board = typeof productionBoards.$inferSelect;
 
 const isDone = (d: Pick<Deliverable, "status">) => (COMPLETED_DELIVERABLE_STATUSES as readonly string[]).includes(d.status);
-const KIND_TITLE: Record<DeliverableKind, string> = { diseno: "Arte gráfico", perfil: "Foto de perfil", portada: "Portada", reel: "Reel" };
+const KIND_TITLE: Record<DeliverableKind, string> = { diseno: "Arte gráfico", perfil: "Foto de perfil", portada: "Portada", reel: "Reel", story: "Story" };
 
 // ───────────────────────── Generación ─────────────────────────
 
-export function plannedDeliverables(contract: Pick<Contract, "designsPerMonth" | "reelsPerMonth" | "includeProfilePhoto" | "includeCover">) {
+export function plannedDeliverables(contract: Pick<Contract, "designsPerMonth" | "reelsPerMonth" | "storiesPerMonth" | "includeProfilePhoto" | "includeCover">) {
   const list: { kind: DeliverableKind; position: number; title: string }[] = [];
   for (let i = 1; i <= contract.designsPerMonth; i++) list.push({ kind: "diseno", position: i, title: `Arte gráfico ${i}` });
   if (contract.includeProfilePhoto) list.push({ kind: "perfil", position: 1, title: "Foto de perfil" });
   if (contract.includeCover) list.push({ kind: "portada", position: 1, title: "Portada" });
   for (let i = 1; i <= contract.reelsPerMonth; i++) list.push({ kind: "reel", position: i, title: `Reel ${i}` });
+  for (let i = 1; i <= contract.storiesPerMonth; i++) list.push({ kind: "story", position: i, title: `Story ${i}` });
   return list;
 }
 
@@ -96,6 +97,7 @@ export type BoardProgress = {
   designs: { done: number; total: number };
   profileCover: { done: number; total: number };
   reels: { done: number; total: number };
+  stories: { done: number; total: number };
   progress: number; // 0..1
   status: BoardStatus;
   delayed: boolean;
@@ -129,6 +131,7 @@ export function computeBoardProgress(board: Pick<Board, "period" | "dueDate">, i
     designs: tally(["diseno"]),
     profileCover: tally(["perfil", "portada"]),
     reels: tally(["reel"]),
+    stories: tally(["story"]),
     progress: total ? done / total : 0,
     status,
     delayed,
@@ -189,7 +192,7 @@ export async function getBoard(ctx: Ctx, id: string) {
     .leftJoin(employees, eq(employees.id, productionDeliverables.assigneeId))
     .where(eq(productionDeliverables.boardId, id))
     .orderBy(
-      sql`case ${productionDeliverables.kind} when 'diseno' then 1 when 'perfil' then 2 when 'portada' then 3 else 4 end`,
+      sql`case ${productionDeliverables.kind} when 'diseno' then 1 when 'perfil' then 2 when 'portada' then 3 when 'story' then 5 else 4 end`,
       asc(productionDeliverables.position),
       asc(productionDeliverables.platform),
     );
@@ -432,7 +435,7 @@ export async function updateBoard(ctx: Ctx, id: string, raw: Loose<typeof boardU
       });
     }
   };
-  await cascade("designerId", ["diseno", "perfil", "portada"]);
+  await cascade("designerId", ["diseno", "perfil", "portada", "story"]);
   await cascade("editorId", ["reel"]);
   if (input.dueDate && input.dueDate !== before.dueDate) {
     await ctx.tx
@@ -550,6 +553,35 @@ async function createPublicationsFromPlan(ctx: Ctx, board: Board, client: Client
       .onConflictDoNothing()
       .returning({ id: publications.id });
     created += res.length;
+  }
+  // Stories: una por cada día fijo de stories del mes, en orden.
+  const storyDays = contract?.storyWeekdays.length ? weekdayDatesInMonth(board.period, contract.storyWeekdays) : [];
+  if (storyDays.length) {
+    const stories = await ctx.tx
+      .select()
+      .from(productionDeliverables)
+      .where(and(eq(productionDeliverables.boardId, board.id), eq(productionDeliverables.kind, "story"), eq(productionDeliverables.countsTowardProgress, true)))
+      .orderBy(asc(productionDeliverables.position));
+    for (const [i, d] of stories.entries()) {
+      if (!storyDays[i]) break;
+      const res = await ctx.tx
+        .insert(publications)
+        .values(
+          networks.map((network) => ({
+            clientId: client.id,
+            deliverableId: d.id,
+            network,
+            scheduledDate: storyDays[i],
+            contentTitle: d.title,
+            status: "lista_programar",
+            responsibleId: client.communityManagerId,
+            createdBy: ctx.actor.userId,
+          })),
+        )
+        .onConflictDoNothing()
+        .returning({ id: publications.id });
+      created += res.length;
+    }
   }
   return created;
 }

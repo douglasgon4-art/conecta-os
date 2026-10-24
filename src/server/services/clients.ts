@@ -60,6 +60,11 @@ export const clientInput = z.object({
 });
 export type ClientInput = Loose<typeof clientInput>;
 
+const zWeekdays = z.preprocess(
+  (v) => (v === undefined || v === null || v === "" ? [] : ([] as unknown[]).concat(v)),
+  z.array(z.coerce.number().int().min(1).max(7)).transform((xs) => [...new Set(xs)].sort()),
+);
+
 export const contractInput = z.object({
   packageId: zUuid(),
   name: zText(150),
@@ -67,13 +72,16 @@ export const contractInput = z.object({
   endDate: zDate(),
   monthlyPrice: zMoney(),
   currency: zCurrency(),
-  billingDay: zInt(1, 28).default(5),
+  billingDay: zInt(1, 31).default(5),
   billingFrequencyMonths: zInt(1, 12).default(1),
   sessionsEnabled: zBool().default(true),
   sessionFrequencyMonths: zInt(1, 12).default(1),
   coordinationLeadDays: zInt(0, 60).optional(),
   designsPerMonth: zInt(0, 60).default(6),
   reelsPerMonth: zInt(0, 60).default(6),
+  storiesPerMonth: zInt(0, 120).default(0),
+  postWeekdays: zWeekdays,
+  storyWeekdays: zWeekdays,
   includeProfilePhoto: zBool().default(true),
   includeCover: zBool().default(true),
   includeStrategy: zBool().default(true),
@@ -223,6 +231,9 @@ async function insertContract(ctx: Ctx, clientId: string, c: z.infer<typeof cont
       coordinationLeadDays: c.coordinationLeadDays ?? settings.default_coordination_lead_days,
       designsPerMonth: c.designsPerMonth,
       reelsPerMonth: c.reelsPerMonth,
+      storiesPerMonth: c.storiesPerMonth,
+      postWeekdays: c.postWeekdays,
+      storyWeekdays: c.storyWeekdays,
       includeProfilePhoto: c.includeProfilePhoto,
       includeCover: c.includeCover,
       includeStrategy: c.includeStrategy,

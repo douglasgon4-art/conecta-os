@@ -172,7 +172,7 @@ export const JOBS: Job[] = [
           type: "production_incomplete",
           severity: "critical",
           title: `Producción incompleta: ${clientName} · ${formatPeriod(b.period)}`,
-          body: `${p.done}/${p.total} entregables terminados (diseños ${p.designs.done}/${p.designs.total}, perfil y portada ${p.profileCover.done}/${p.profileCover.total}, reels ${p.reels.done}/${p.reels.total}).`,
+          body: `${p.done}/${p.total} entregables terminados (diseños ${p.designs.done}/${p.designs.total}, perfil y portada ${p.profileCover.done}/${p.profileCover.total}, reels ${p.reels.done}/${p.reels.total}${p.stories.total ? `, stories ${p.stories.done}/${p.stories.total}` : ""}).`,
           link: `/produccion/${b.id}`,
           entityType: "production_board",
           entityId: b.id,

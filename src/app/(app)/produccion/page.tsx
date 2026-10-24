@@ -44,13 +44,14 @@ export default async function ProductionPage({ searchParams }: { searchParams: S
         </form>
         {d.rows.length ? (
           <Table>
-            <thead><tr><Th>Cliente</Th><Th>Diseños</Th><Th>Perfil y portada</Th><Th>Reels</Th><Th className="w-44">Avance</Th><Th>Estado</Th><Th>Responsables</Th><Th>Fecha límite</Th></tr></thead>
+            <thead><tr><Th>Cliente</Th><Th>Diseños</Th><Th>Perfil y portada</Th><Th>Reels</Th><Th>Stories</Th><Th className="w-44">Avance</Th><Th>Estado</Th><Th>Responsables</Th><Th>Fecha límite</Th></tr></thead>
             <tbody>{d.rows.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
                 <Td><Link href={`/produccion/${r.id}`} className="font-medium hover:underline">{r.clientName}</Link></Td>
                 <Td className="tabular"><Badge tone={r.designs.done === r.designs.total ? "green" : "gray"} icon={false}>{r.designs.done}/{r.designs.total}</Badge></Td>
                 <Td className="tabular"><Badge tone={r.profileCover.done === r.profileCover.total ? "green" : "gray"} icon={false}>{r.profileCover.done}/{r.profileCover.total}</Badge></Td>
                 <Td className="tabular"><Badge tone={r.reels.done === r.reels.total ? "green" : "gray"} icon={false}>{r.reels.done}/{r.reels.total}</Badge></Td>
+                <Td className="tabular">{r.stories.total ? <Badge tone={r.stories.done === r.stories.total ? "green" : "gray"} icon={false}>{r.stories.done}/{r.stories.total}</Badge> : "—"}</Td>
                 <Td><div className="flex items-center gap-2"><Progress value={r.progress} tone={r.delayed ? "red" : undefined} /><span className="w-12 text-xs tabular">{formatPercent(r.progress)}</span></div></Td>
                 <Td className="space-x-1"><StatusBadge list={BOARD_STATUSES} value={r.status} />{r.delayed && r.status !== "con_retraso" && r.status !== "produccion_incompleta" && <Badge tone="red">{r.overdueCount} atrasado(s)</Badge>}</Td>
                 <Td className="text-xs">🎨 {r.designer ?? "—"}<br />🎬 {r.editor ?? "—"}</Td>

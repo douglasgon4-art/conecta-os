@@ -12,6 +12,8 @@ const contractFrom = (o: Record<string, unknown>) => {
   const c = { ...((o.contract ?? {}) as Record<string, unknown>) };
   for (const k of ["sessionsEnabled", "includeProfilePhoto", "includeCover", "includeStrategy", "includeCommunity"]) c[k] = c[k] === "on" || c[k] === "true";
   c.socialNetworks = o.networks ? ([] as unknown[]).concat(o.networks) : [];
+  c.postWeekdays = o.postDays ?? [];
+  c.storyWeekdays = o.storyDays ?? [];
   return c;
 };
 

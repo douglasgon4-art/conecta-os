@@ -82,9 +82,12 @@ const contractSchema = {
     startDate: date("Inicio del servicio"),
     monthlyPrice: num("Precio mensual"),
     currency: { type: "string", enum: ["NIO", "USD"] },
-    billingDay: num("Día de pago (1-28)"),
+    billingDay: num("Día de pago (1-31; en meses cortos se usa el último día)"),
     designsPerMonth: num("Artes gráficos al mes"),
     reelsPerMonth: num("Reels al mes"),
+    storiesPerMonth: num("Stories al mes (las hace Diseño)"),
+    postWeekdays: { type: "array", description: "Días fijos de publicación de artes y reels (1 = lunes … 7 = domingo)", items: { type: "integer", minimum: 1, maximum: 7 } },
+    storyWeekdays: { type: "array", description: "Días fijos de stories (1 = lunes … 7 = domingo)", items: { type: "integer", minimum: 1, maximum: 7 } },
     includeProfilePhoto: bool("Incluye foto de perfil"),
     includeCover: bool("Incluye portada"),
     sessionsEnabled: bool("Incluye sesión de contenido"),
@@ -458,7 +461,7 @@ export const TOOLS: ToolDef[] = [
       const rows = await productionSvc.productionOverview(ctx, { period: i.month ?? ctx.today, clientId, delayedOnly: i.delayedOnly });
       return {
         summary: `${rows.length} tablero(s)`,
-        data: rows.map((r) => ({ boardId: r.id, client: r.clientName, designs: `${r.designs.done}/${r.designs.total}`, profileCover: `${r.profileCover.done}/${r.profileCover.total}`, reels: `${r.reels.done}/${r.reels.total}`, progress: Math.round(r.progress * 1000) / 10 + "%", status: r.status, delayed: r.delayed, designer: r.designer, editor: r.editor, dueDate: r.dueDate })),
+        data: rows.map((r) => ({ boardId: r.id, client: r.clientName, designs: `${r.designs.done}/${r.designs.total}`, profileCover: `${r.profileCover.done}/${r.profileCover.total}`, reels: `${r.reels.done}/${r.reels.total}`, stories: `${r.stories.done}/${r.stories.total}`, progress: Math.round(r.progress * 1000) / 10 + "%", status: r.status, delayed: r.delayed, designer: r.designer, editor: r.editor, dueDate: r.dueDate })),
       };
     },
   },

@@ -31,7 +31,7 @@ export default async function Dashboard() {
         {dash.plansPending !== undefined && <Stat label="Planificaciones pendientes" value={dash.plansPending} hint="Mes actual y siguiente" href="/estrategia" tone={dash.plansPending ? "yellow" : "green"} />}
         {dash.production && <Stat label="Listos para publicar" value={`${dash.production.ready}/${dash.production.boards}`} hint={`${dash.production.delayed} con retraso`} href="/produccion" tone={dash.production.delayed ? "red" : undefined} />}
         {dash.publications && <Stat label="Publicaciones de hoy" value={dash.publications.ratio === null ? "—" : formatPercent(dash.publications.ratio)} hint={`${dash.publications.published}/${dash.publications.planned} publicadas · ${dash.publications.failed} fallidas`} href="/publicaciones" tone={dash.publications.failed ? "red" : undefined} />}
-        {dash.production && <Stat label="Diseños pendientes" value={dash.production.designsPending} hint="Incluye perfil y portada" href="/produccion" />}
+        {dash.production && <Stat label="Diseños pendientes" value={dash.production.designsPending} hint="Incluye perfil, portada y stories" href="/produccion" />}
         {dash.production && <Stat label="Reels pendientes" value={dash.production.reelsPending} href="/produccion" />}
         {dash.overdueTasks !== undefined && <Stat label="Tareas atrasadas" value={dash.overdueTasks} href="/tareas?scope=todas&overdue=1" tone={dash.overdueTasks ? "red" : "green"} />}
         {fin && <Stat label="Cobrado este mes" value={money(fin.collected, base)} hint={`Facturado ${money(fin.invoiced, base)}`} href="/finanzas" />}
@@ -46,7 +46,7 @@ export default async function Dashboard() {
           <Card title={`Producción de ${formatPeriod(dash.period)}`} actions={<Link className="text-xs text-brand-700" href="/produccion">Ver todo</Link>} padded={false}>
             {dash.production.rows.length ? (
               <Table>
-                <thead><tr><Th>Cliente</Th><Th>Diseños</Th><Th>Perfil/portada</Th><Th>Reels</Th><Th className="w-32">Avance</Th><Th>Estado</Th></tr></thead>
+                <thead><tr><Th>Cliente</Th><Th>Diseños</Th><Th>Perfil/portada</Th><Th>Reels</Th><Th>Stories</Th><Th className="w-32">Avance</Th><Th>Estado</Th></tr></thead>
                 <tbody>
                   {dash.production.rows.map((r: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
                     <tr key={r.id}>
@@ -54,6 +54,7 @@ export default async function Dashboard() {
                       <Td className="tabular">{r.designs.done}/{r.designs.total}</Td>
                       <Td className="tabular">{r.profileCover.done}/{r.profileCover.total}</Td>
                       <Td className="tabular">{r.reels.done}/{r.reels.total}</Td>
+                      <Td className="tabular">{r.stories.total ? `${r.stories.done}/${r.stories.total}` : "—"}</Td>
                       <Td><div className="flex items-center gap-2"><Progress value={r.progress} tone={r.delayed ? "red" : undefined} /><span className="text-xs tabular">{formatPercent(r.progress)}</span></div></Td>
                       <Td><StatusBadge list={BOARD_STATUSES} value={r.status} /></Td>
                     </tr>
