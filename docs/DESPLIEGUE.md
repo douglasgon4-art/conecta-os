@@ -43,6 +43,10 @@ Supabase o en Vercel.
 4. Entra a la URL que te da Vercel con `SEED_ADMIN_EMAIL` y `SEED_ADMIN_PASSWORD`, y cambia la contraseña en
    **Mi perfil**.
 
+**¿No puedes entrar?** En Vercel abre *Deployments → el último → Build Logs* y busca `Usuario inicial`: ahí aparece el
+correo que se creó (nunca la contraseña). Para restablecer la contraseña de Gerencia, cambia `SEED_ADMIN_PASSWORD`,
+agrega la variable `SEED_ADMIN_RESET` = `1` y vuelve a desplegar (*Redeploy*). Cuando entres, borra `SEED_ADMIN_RESET`.
+
 El cron diario ya está configurado en `vercel.json` (6:00 a. m. hora de Managua). Vercel envía `CRON_SECRET`
 automáticamente.
 

@@ -121,15 +121,26 @@ export async function seed(url = process.env.DATABASE_OWNER_URL!, opts: { adminE
       ],
     );
 
-    const adminEmail = opts.adminEmail ?? process.env.SEED_ADMIN_EMAIL ?? "gerencia@conecta.local";
-    const adminPassword = opts.adminPassword ?? process.env.SEED_ADMIN_PASSWORD ?? "Conecta2026!";
+    const clean = (v?: string) => v?.trim().replace(/^["']|["']$/g, "").trim() || undefined;
+    const envPassword = clean(process.env.SEED_ADMIN_PASSWORD);
+    const adminEmail = (opts.adminEmail ?? clean(process.env.SEED_ADMIN_EMAIL) ?? "gerencia@conecta.local").toLowerCase();
+    const adminPassword = opts.adminPassword ?? envPassword ?? "Conecta2026!";
+    const fromEnv = Boolean(opts.adminPassword ?? envPassword);
     const existing = await c.query("select id from users where lower(email)=lower($1)", [adminEmail]);
     if (existing.rowCount === 0) {
       const hash = await bcrypt.hash(adminPassword, 10);
       const { rows } = await c.query("insert into users(email,name,password_hash) values($1,$2,$3) returning id", [adminEmail, "Gerencia CONECTA", hash]);
       await c.query("insert into user_roles(user_id, role_id) select $1, id from roles where key='gerencia'", [rows[0].id]);
       // Si la contraseña viene de una variable de entorno no se imprime (los registros de despliegue pueden ser visibles).
-      if (!opts.quiet) console.log(`✓ Usuario inicial: ${adminEmail}${opts.adminPassword ?? process.env.SEED_ADMIN_PASSWORD ? "" : ` / ${adminPassword}`}  (cambia la contraseña después de entrar)`);
+      if (!opts.quiet) console.log(`✓ Usuario inicial: ${adminEmail}${fromEnv ? "" : ` / ${adminPassword}`}  (cambia la contraseña después de entrar)`);
+    } else if (clean(process.env.SEED_ADMIN_RESET) === "1" && envPassword) {
+      // Restablecimiento explícito de la contraseña de Gerencia (quitar SEED_ADMIN_RESET después de entrar).
+      const hash = await bcrypt.hash(envPassword, 10);
+      await c.query("update users set password_hash=$2, is_active=true where id=$1", [existing.rows[0].id, hash]);
+      await c.query("insert into user_roles(user_id, role_id) select $1, id from roles where key='gerencia' on conflict do nothing", [existing.rows[0].id]);
+      if (!opts.quiet) console.log(`✓ Usuario inicial: ${adminEmail} — contraseña restablecida con SEED_ADMIN_PASSWORD. Quita SEED_ADMIN_RESET de las variables.`);
+    } else if (!opts.quiet) {
+      console.log(`✓ Usuario inicial: ${adminEmail} (ya existía; la contraseña no se modificó)`);
     }
     await c.query("COMMIT");
   } catch (e) {
