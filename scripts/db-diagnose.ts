@@ -13,7 +13,8 @@ export function describeConnection(name: string, raw: string | undefined) {
   if (!pass) problems.push("no tiene contraseña");
   if (/[[\]]|YOUR-PASSWORD|TU-|NUEVA-|CONTRASENA|ESCRIBE-AQUI/i.test(pass)) problems.push("la contraseña parece un texto de ejemplo sin reemplazar");
   if (/\s/.test(pass)) problems.push("la contraseña contiene espacios");
-  return `${problems.length ? "✗" : "•"} ${name}: usuario "${decodeURIComponent(url.username)}", servidor ${url.hostname}, puerto ${url.port || "5432"}, base "${url.pathname.slice(1)}", contraseña de ${pass.length} caracteres${problems.length ? ` — PROBLEMA: ${problems.join("; ")}` : ""}`;
+  const summary = `${problems.length ? "✗" : "•"} ${name}: usuario "${decodeURIComponent(url.username)}", puerto ${url.port || "5432"}, contraseña de ${pass.length} caracteres`;
+  return problems.length ? `${summary}\n  ✗ PROBLEMA en ${name}: ${problems.join("; ")}` : summary;
 }
 
 export function explainDbError(e: unknown) {

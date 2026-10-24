@@ -1,4 +1,4 @@
-import "./load-env";
+import { cleanedEnv } from "./load-env";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
@@ -14,6 +14,7 @@ export async function runMigrations(url = process.env.DATABASE_OWNER_URL!) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  if (cleanedEnv.length) console.log(`• Se quitaron espacios o comillas sobrantes de: ${cleanedEnv.join(", ")} (corregido automáticamente)`);
   console.log(describeConnection("DATABASE_OWNER_URL", process.env.DATABASE_OWNER_URL));
   console.log(describeConnection("DATABASE_URL", process.env.DATABASE_URL));
   runMigrations()
