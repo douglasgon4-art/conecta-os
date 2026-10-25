@@ -4,7 +4,7 @@ import * as svc from "@/server/services/publications";
 
 export async function createPublicationAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
-  return run((ctx) => svc.createPublication(ctx, o), { revalidate: ["/publicaciones"], success: "Publicación planificada" });
+  return run((ctx) => svc.createPublication(ctx, o), { revalidate: ["/publicaciones"], success: (r) => (r.status === "publicada" ? "Publicación registrada como publicada" : "Publicación planificada") });
 }
 export async function updatePublicationAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);

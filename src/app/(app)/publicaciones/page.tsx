@@ -102,10 +102,14 @@ export default async function PublicationsPage({ searchParams }: { searchParams:
                   <Field label="Red"><Select name="network">{SOCIAL_NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}</Select></Field>
                   <Field label="Fecha"><Input type="date" name="scheduledDate" required defaultValue={d.day} /></Field>
                   <Field label="Hora"><Input type="time" name="scheduledTime" /></Field>
-                  <Field label="Estado"><Select name="status"><option value="pendiente">Pendiente</option><option value="lista_programar">Lista para programar</option><option value="programada">Programada</option></Select></Field>
+                  <Field label="Estado"><Select name="status"><option value="pendiente">Pendiente</option><option value="lista_programar">Lista para programar</option><option value="programada">Programada</option><option value="publicada">Publicada</option></Select></Field>
                 </div>
-                <Field label="Contenido"><Input name="contentTitle" required placeholder="Reel 1: …" /></Field>
-                <SubmitButton size="sm">Planificar</SubmitButton>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Contenido"><Input name="contentTitle" required placeholder="Reel 1: …" /></Field>
+                  <Field label="Enlace de la publicación" hint="Opcional; útil si ya está publicada"><Input name="evidenceUrl" placeholder="https://…" /></Field>
+                </div>
+                <p className="mb-2 text-xs text-slate-500">Para marcar como publicada una que ya está en la lista, cambia su estado en el «Checklist del día».</p>
+                <SubmitButton size="sm">Guardar</SubmitButton>
               </ActionForm>
             </Card>
           )}

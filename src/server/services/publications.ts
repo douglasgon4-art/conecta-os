@@ -21,7 +21,8 @@ export const publicationInput = z.object({
   caption: zText(4000),
   deliverableId: zUuid(),
   responsibleId: zUuid(),
-  status: z.enum(["pendiente", "lista_programar", "programada"]).default("pendiente"),
+  status: z.enum(["pendiente", "lista_programar", "programada", "publicada"]).default("pendiente"),
+  evidenceUrl: z.preprocess((v) => (v === "" ? undefined : v), z.url("Enlace inválido").optional()),
 });
 
 export async function createPublication(ctx: Ctx, raw: Loose<typeof publicationInput>) {
@@ -42,13 +43,18 @@ export async function createPublication(ctx: Ctx, raw: Loose<typeof publicationI
     const [d] = await ctx.tx.select().from(productionDeliverables).where(eq(productionDeliverables.id, input.deliverableId));
     if (!d || d.clientId !== client.id) throw new AppError("VALIDATION", "El contenido seleccionado no pertenece a este cliente");
   }
+  // Registrar algo ya publicado: misma confirmación trazada que al marcarla después (quién y cuándo).
+  const published = input.status === "publicada";
+  if (published && !ctx.actor.userId) throw new AppError("VALIDATION", "Una publicación solo puede confirmarla una persona usuaria");
+  if (published && input.scheduledDate > ctx.today) throw new AppError("VALIDATION", "No se puede marcar como publicada una fecha futura");
+  const confirmation = published ? { confirmedBy: ctx.actor.userId, confirmedAt: new Date(), publishedAt: new Date(), verification: "manual" } : {};
   const [pub] = await ctx.tx
     .insert(publications)
-    .values({ ...input, scheduledTime: input.scheduledTime ?? null, caption: input.caption ?? null, deliverableId: input.deliverableId ?? null, responsibleId, createdBy: ctx.actor.userId })
+    .values({ ...input, ...confirmation, evidenceUrl: input.evidenceUrl ?? null, scheduledTime: input.scheduledTime ?? null, caption: input.caption ?? null, deliverableId: input.deliverableId ?? null, responsibleId, createdBy: ctx.actor.userId })
     .onConflictDoNothing()
     .returning();
   if (!pub) throw new AppError("DUPLICATE", "Ese contenido ya está planificado en esa red social");
-  await audit(ctx, { action: "publication.create", entityType: "publication", entityId: pub.id, clientId: client.id, summary: `Publicación planificada: ${client.tradeName} · ${labelOf(SOCIAL_NETWORKS, pub.network)} · ${formatDate(pub.scheduledDate)} · ${pub.contentTitle}` });
+  await audit(ctx, { action: "publication.create", entityType: "publication", entityId: pub.id, clientId: client.id, summary: `${published ? "Publicación registrada como publicada" : "Publicación planificada"}: ${client.tradeName} · ${labelOf(SOCIAL_NETWORKS, pub.network)} · ${formatDate(pub.scheduledDate)} · ${pub.contentTitle}` });
   return pub;
 }
 

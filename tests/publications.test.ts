@@ -59,4 +59,13 @@ describe("Community Management", () => {
     const p = await as(cm1, (ctx) => createPublication(ctx, { clientId: client.id, network: "facebook", scheduledDate: "2026-10-10", contentTitle: "Post" }), at("2026-10-01"));
     await expect(as(cm2, (ctx) => updatePublication(ctx, p.id, { status: "publicada" }), at("2026-10-10"))).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
+
+  it("se puede registrar directamente como publicada, con confirmación trazada, pero no en fecha futura", async () => {
+    const manager = await makeUser("gerencia");
+    const { client } = await as(manager, (ctx) => createClient(ctx, { client: { tradeName: uniq("Publicada") }, contract: standardContract({ startDate: "2026-10-01" }) }), at("2026-10-01"));
+    const p = await as(manager, (ctx) => createPublication(ctx, { clientId: client.id, network: "facebook", scheduledDate: "2026-10-25", contentTitle: "Reel 1", status: "publicada", evidenceUrl: "https://facebook.com/p/1" }), at("2026-10-25"));
+    expect(p).toMatchObject({ status: "publicada", verification: "manual", confirmedBy: manager.userId, evidenceUrl: "https://facebook.com/p/1" });
+    expect(p.confirmedAt).toBeTruthy();
+    await expect(as(manager, (ctx) => createPublication(ctx, { clientId: client.id, network: "instagram", scheduledDate: "2026-10-30", contentTitle: "Reel 2", status: "publicada" }), at("2026-10-25"))).rejects.toMatchObject({ code: "VALIDATION" });
+  });
 });
