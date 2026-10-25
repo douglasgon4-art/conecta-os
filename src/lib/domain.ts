@@ -232,8 +232,8 @@ export const CONTRACT_TYPES = catalog([
 ] as const);
 
 export const PAY_FREQUENCIES = catalog([
-  { value: "quincenal", label: "Quincenal", tone: "gray" },
-  { value: "mensual", label: "Mensual", tone: "gray" },
+  { value: "quincenal", label: "Salario mensual, la mitad cada quincena", tone: "gray" },
+  { value: "mensual", label: "Salario mensual, todo a fin de mes", tone: "gray" },
 ] as const);
 
 export const PAYROLL_STATUSES = catalog([

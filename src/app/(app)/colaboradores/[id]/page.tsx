@@ -7,7 +7,7 @@ import { AppError } from "@/server/errors";
 import { Badge, Card, DL, Field, Input, PageHeader, Select, StatusBadge, Table, Td, Th } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { EmployeeFields } from "@/components/forms/employee-fields";
-import { CONTRACT_TYPES, DEPARTMENTS, EMPLOYEE_STATUSES, VACATION_STATUSES, labelOf } from "@/lib/domain";
+import { CONTRACT_TYPES, DEPARTMENTS, EMPLOYEE_STATUSES, PAY_FREQUENCIES, VACATION_STATUSES, labelOf } from "@/lib/domain";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { createUserForEmployeeAction, leaveAdjustmentAction, salaryAction, updateEmployeeAction, vacationDecisionAction, vacationRequestAction } from "../actions";
@@ -33,7 +33,7 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
       <PageHeader title={e.fullName} subtitle={<span className="flex items-center gap-2"><StatusBadge list={EMPLOYEE_STATUSES} value={e.status} />{e.position} · {labelOf(DEPARTMENTS, e.departmentKey)}</span>} />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card title="Ficha laboral" className="lg:col-span-2">
-          <DL items={[["Teléfono", e.phone], ["Correo", e.email], ["Fecha de contratación", formatDate(e.hireDate)], ["Fecha de inicio", formatDate(e.startDate)], ["Tipo de contrato", labelOf(CONTRACT_TYPES, e.contractType)], ["Jornada", e.workSchedule], ["Frecuencia de pago", e.payFrequency], ["Salario vigente", e.currentSalary ? formatMoney(e.currentSalary.salary, e.currentSalary.currency) : d.salary ? "Sin salario registrado" : "Restringido"], ["Terminación", formatDate(e.terminationDate)], ["Usuario del sistema", e.user ? `${e.user.email}${e.user.isActive ? "" : " (inactivo)"}` : "Sin acceso"]]} />
+          <DL items={[["Teléfono", e.phone], ["Correo", e.email], ["Fecha de contratación", formatDate(e.hireDate)], ["Fecha de inicio", formatDate(e.startDate)], ["Tipo de contrato", labelOf(CONTRACT_TYPES, e.contractType)], ["Jornada", e.workSchedule], ["Forma de pago", labelOf(PAY_FREQUENCIES, e.payFrequency)], ["Salario vigente", e.currentSalary ? formatMoney(e.currentSalary.salary, e.currentSalary.currency) : d.salary ? "Sin salario registrado" : "Restringido"], ["Terminación", formatDate(e.terminationDate)], ["Usuario del sistema", e.user ? `${e.user.email}${e.user.isActive ? "" : " (inactivo)"}` : "Sin acceso"]]} />
         </Card>
         <div className="space-y-4">
           {d.ag && (
@@ -71,19 +71,27 @@ export default async function EmployeeDetail({ params }: { params: Promise<{ id:
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         {d.salary && (
-          <Card title="Historial salarial">
+          <Card title="Salario">
+            {e.currentSalary && (
+              <p className="mb-3 text-sm">
+                Salario mensual actual: <strong className="tabular">{formatMoney(e.currentSalary.salary, e.currentSalary.currency)}</strong>
+                {e.payFrequency === "quincenal" && <> · cada quincena recibe <strong className="tabular">{formatMoney(e.currentSalary.salary / 2, e.currentSalary.currency)}</strong> (antes de deducciones)</>}
+              </p>
+            )}
             {e.salaryHistory?.length ? (
               <Table><thead><tr><Th>Desde</Th><Th>Salario</Th><Th>Motivo</Th></tr></thead><tbody>{e.salaryHistory.map((s) => <tr key={s.id}><Td>{formatDate(s.effectiveDate)}</Td><Td className="tabular">{formatMoney(s.salary, s.currency)}</Td><Td>{s.reason ?? "—"}</Td></tr>)}</tbody></Table>
             ) : <p className="text-sm text-slate-500">Sin registros.</p>}
             <ActionForm action={salaryAction} className="mt-3 border-t border-slate-100 pt-3">
               <input type="hidden" name="id" value={e.id} />
+              <p className="mb-2 text-sm font-medium">Cambiar salario (aumento o rebaja)</p>
+              <p className="mb-2 text-xs text-slate-500">El salario anterior queda en el historial. La nómina usa el nuevo desde la fecha efectiva; si el cambio cae a mitad de quincena, se calcula por partes.</p>
               <div className="grid grid-cols-3 gap-2">
-                <Field label="Nuevo salario"><Input name="salary" required inputMode="decimal" /></Field>
+                <Field label="Nuevo salario mensual"><Input name="salary" required inputMode="decimal" /></Field>
                 <Field label="Moneda"><Select name="currency"><option value="NIO">C$</option><option value="USD">US$</option></Select></Field>
                 <Field label="Fecha efectiva"><Input type="date" name="effectiveDate" required defaultValue={d.today} /></Field>
               </div>
-              <Field label="Motivo"><Input name="reason" /></Field>
-              <SubmitButton size="sm">Registrar cambio salarial</SubmitButton>
+              <Field label="Motivo"><Input name="reason" placeholder="Ej.: aumento por desempeño" /></Field>
+              <SubmitButton size="sm">Guardar nuevo salario</SubmitButton>
             </ActionForm>
           </Card>
         )}

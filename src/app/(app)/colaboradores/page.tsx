@@ -4,7 +4,7 @@ import { load, sp, type SP } from "../_lib/page";
 import { can } from "@/server/ctx";
 import { listEmployees } from "@/server/services/employees";
 import { Card, Empty, Input, LinkButton, PageHeader, StatusBadge, Table, Td, Th } from "@/components/ui";
-import { DEPARTMENTS, EMPLOYEE_STATUSES, labelOf } from "@/lib/domain";
+import { DEPARTMENTS, EMPLOYEE_STATUSES, PAY_FREQUENCIES, labelOf } from "@/lib/domain";
 import { formatDate } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 
@@ -26,7 +26,7 @@ export default async function EmployeesPage({ searchParams }: { searchParams: SP
                 <Td><Link className="font-medium hover:underline" href={`/colaboradores/${e.id}`}>{e.fullName}</Link><div className="text-xs text-slate-500">{e.email ?? e.phone}</div></Td>
                 <Td>{e.position ?? "—"}</Td><Td>{labelOf(DEPARTMENTS, e.departmentKey)}</Td><Td>{formatDate(e.startDate)}</Td>
                 {d.salary && <Td className="tabular">{e.salary != null ? formatMoney(e.salary, e.currency ?? "NIO") : "—"}</Td>}
-                <Td>{e.payFrequency}</Td><Td><StatusBadge list={EMPLOYEE_STATUSES} value={e.status} /></Td>
+                <Td className="text-xs">{labelOf(PAY_FREQUENCIES, e.payFrequency)}</Td><Td><StatusBadge list={EMPLOYEE_STATUSES} value={e.status} /></Td>
               </tr>
             ))}</tbody>
           </Table>
