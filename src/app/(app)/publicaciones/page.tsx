@@ -97,13 +97,20 @@ export default async function PublicationsPage({ searchParams }: { searchParams:
           {(d.manage || d.own) && (
             <Card title="Planificar publicación" className="mt-4">
               <ActionForm action={createPublicationAction} resetOnSuccess>
-                <div className="grid gap-3 sm:grid-cols-5">
+                <div className="grid gap-3 sm:grid-cols-4">
                   <Field label="Cliente"><Select name="clientId" required>{D.clients.map((c: Any) => <option key={c.id} value={c.id}>{c.tradeName}</option>)}</Select></Field>
-                  <Field label="Red"><Select name="network">{SOCIAL_NETWORKS.map((n) => <option key={n.value} value={n.value}>{n.label}</option>)}</Select></Field>
                   <Field label="Fecha"><Input type="date" name="scheduledDate" required defaultValue={d.day} /></Field>
                   <Field label="Hora"><Input type="time" name="scheduledTime" /></Field>
                   <Field label="Estado"><Select name="status"><option value="pendiente">Pendiente</option><option value="lista_programar">Lista para programar</option><option value="programada">Programada</option><option value="publicada">Publicada</option></Select></Field>
                 </div>
+                <fieldset className="mb-3">
+                  <legend className="mb-1 text-sm font-medium text-slate-700">Redes</legend>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    {SOCIAL_NETWORKS.map((n) => (
+                      <label key={n.value} className="flex items-center gap-1.5"><input type="checkbox" name="networks" value={n.value} className="size-4" />{n.label}</label>
+                    ))}
+                  </div>
+                </fieldset>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Field label="Contenido"><Input name="contentTitle" required placeholder="Reel 1: …" /></Field>
                   <Field label="Enlace de la publicación" hint="Opcional; útil si ya está publicada"><Input name="evidenceUrl" placeholder="https://…" /></Field>

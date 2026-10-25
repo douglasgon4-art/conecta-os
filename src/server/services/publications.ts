@@ -43,6 +43,22 @@ export async function createPublication(ctx: Ctx, raw: Loose<typeof publicationI
     const [d] = await ctx.tx.select().from(productionDeliverables).where(eq(productionDeliverables.id, input.deliverableId));
     if (!d || d.clientId !== client.id) throw new AppError("VALIDATION", "El contenido seleccionado no pertenece a este cliente");
   }
+  if (!input.deliverableId) {
+    const [dup] = await ctx.tx
+      .select({ id: publications.id })
+      .from(publications)
+      .where(
+        and(
+          eq(publications.clientId, client.id),
+          eq(publications.network, input.network),
+          eq(publications.scheduledDate, input.scheduledDate),
+          sql`lower(trim(${publications.contentTitle})) = lower(trim(${input.contentTitle}))`,
+          notInArray(publications.status, ["reprogramada", "no_aplica"]),
+        ),
+      )
+      .limit(1);
+    if (dup) throw new AppError("DUPLICATE", "Ese contenido ya está planificado en esa red social para ese día");
+  }
   // Registrar algo ya publicado: misma confirmación trazada que al marcarla después (quién y cuándo).
   const published = input.status === "publicada";
   if (published && !ctx.actor.userId) throw new AppError("VALIDATION", "Una publicación solo puede confirmarla una persona usuaria");
@@ -56,6 +72,26 @@ export async function createPublication(ctx: Ctx, raw: Loose<typeof publicationI
   if (!pub) throw new AppError("DUPLICATE", "Ese contenido ya está planificado en esa red social");
   await audit(ctx, { action: "publication.create", entityType: "publication", entityId: pub.id, clientId: client.id, summary: `${published ? "Publicación registrada como publicada" : "Publicación planificada"}: ${client.tradeName} · ${labelOf(SOCIAL_NETWORKS, pub.network)} · ${formatDate(pub.scheduledDate)} · ${pub.contentTitle}` });
   return pub;
+}
+
+/**
+ * Planifica (o registra como publicado) el mismo contenido en varias redes a la vez.
+ * Todo o nada si una red no está en el contrato; las redes donde ya estaba planificado se omiten y se informan.
+ */
+export async function createPublicationsForNetworks(ctx: Ctx, raw: Loose<typeof publicationInput> & { networks?: unknown }) {
+  const networks = [...new Set(([] as unknown[]).concat(raw.networks ?? raw.network ?? []).map(String).filter(Boolean))];
+  if (!networks.length) throw new AppError("VALIDATION", "Selecciona al menos una red social");
+  const created: (typeof publications.$inferSelect)[] = [];
+  const skipped: string[] = [];
+  for (const network of networks) {
+    try {
+      created.push(await ctx.tx.transaction((sp) => createPublication(Object.create(ctx, { tx: { value: sp } }) as Ctx, { ...raw, network: network as never })));
+    } catch (e) {
+      if (e instanceof AppError && e.code === "DUPLICATE") skipped.push(labelOf(SOCIAL_NETWORKS, network));
+      else throw e;
+    }
+  }
+  return { created, skipped };
 }
 
 async function loadForWrite(ctx: Ctx, id: string) {

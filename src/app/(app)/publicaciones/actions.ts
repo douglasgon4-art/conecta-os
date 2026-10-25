@@ -4,7 +4,12 @@ import * as svc from "@/server/services/publications";
 
 export async function createPublicationAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
-  return run((ctx) => svc.createPublication(ctx, o), { revalidate: ["/publicaciones"], success: (r) => (r.status === "publicada" ? "Publicación registrada como publicada" : "Publicación planificada") });
+  return run((ctx) => svc.createPublicationsForNetworks(ctx, o), {
+    revalidate: ["/publicaciones"],
+    success: (r) =>
+      `${r.created.length ? `${o.status === "publicada" ? "Registrada como publicada" : "Planificada"} en ${r.created.length} red(es)` : "No se creó nada nuevo"}` +
+      (r.skipped.length ? `. Ya estaba en: ${r.skipped.join(", ")}` : ""),
+  });
 }
 export async function updatePublicationAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);

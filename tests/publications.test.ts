@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { as, asSystem, at, makeUser, standardContract, uniq } from "./helpers";
 import { createClient } from "@/server/services/clients";
-import { closePublicationDay, complianceHistory, createPublication, dailyCompliance, reschedulePublication, updatePublication } from "@/server/services/publications";
+import { closePublicationDay, complianceHistory, createPublication, createPublicationsForNetworks, dailyCompliance, reschedulePublication, updatePublication } from "@/server/services/publications";
 
 describe("Community Management", () => {
   it("cumplimiento diario solo con obligaciones aplicables, historial inmutable y confirmación trazada", async () => {
@@ -67,5 +67,17 @@ describe("Community Management", () => {
     expect(p).toMatchObject({ status: "publicada", verification: "manual", confirmedBy: manager.userId, evidenceUrl: "https://facebook.com/p/1" });
     expect(p.confirmedAt).toBeTruthy();
     await expect(as(manager, (ctx) => createPublication(ctx, { clientId: client.id, network: "instagram", scheduledDate: "2026-10-30", contentTitle: "Reel 2", status: "publicada" }), at("2026-10-25"))).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("planifica en varias redes a la vez y omite las que ya estaban", async () => {
+    const manager = await makeUser("gerencia");
+    const { client } = await as(manager, (ctx) => createClient(ctx, { client: { tradeName: uniq("Multired") }, contract: standardContract({ startDate: "2026-10-01", socialNetworks: ["facebook", "instagram", "tiktok"] }) }), at("2026-10-01"));
+    const base = { clientId: client.id, scheduledDate: "2026-10-25", contentTitle: "Arte 1" };
+    const r1 = await as(manager, (ctx) => createPublicationsForNetworks(ctx, { ...base, networks: ["facebook", "instagram"], status: "publicada" }), at("2026-10-25"));
+    expect(r1.created.map((p) => p.network).sort()).toEqual(["facebook", "instagram"]);
+    const r2 = await as(manager, (ctx) => createPublicationsForNetworks(ctx, { ...base, networks: ["facebook", "instagram", "tiktok"], status: "publicada" }), at("2026-10-25"));
+    expect(r2.created.map((p) => p.network)).toEqual(["tiktok"]);
+    expect(r2.skipped).toEqual(["Facebook", "Instagram"]);
+    await expect(as(manager, (ctx) => createPublicationsForNetworks(ctx, { ...base, networks: [] }), at("2026-10-25"))).rejects.toMatchObject({ code: "VALIDATION" });
   });
 });
