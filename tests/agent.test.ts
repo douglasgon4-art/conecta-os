@@ -143,3 +143,14 @@ describe("Asistente de CONECTA", () => {
     await expect(resolvePendingAction(manager, r.pending[0].id, "confirmar", { now: TODAY })).rejects.toMatchObject({ code: "CONFLICT" });
   });
 });
+
+describe("Errores del proveedor de IA", () => {
+  it("traduce clave inválida, falta de saldo y saturación a mensajes claros", async () => {
+    const { default: Anthropic } = await import("@anthropic-ai/sdk");
+    const { explainProviderError } = await import("@/server/agent/provider");
+    const gen = (status: number, message: string) => Anthropic.APIError.generate(status, { type: "error", error: { type: "x", message } }, message, new Headers());
+    expect(explainProviderError(gen(401, "invalid x-api-key")).message).toMatch(/no es válida/);
+    expect(explainProviderError(gen(400, "Your credit balance is too low")).message).toMatch(/no tiene saldo/);
+    expect(explainProviderError(gen(529, "Overloaded")).message).toMatch(/saturado/);
+  });
+});
