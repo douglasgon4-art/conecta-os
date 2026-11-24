@@ -10,6 +10,7 @@ import { ContractFields } from "@/components/forms/contract-fields";
 import { CALL_RESULTS, CLOSED_LEAD_STATUSES, INTEREST_LEVELS, LEAD_STATUSES, labelOf } from "@/lib/domain";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
+import { SocialLinks } from "../social-links";
 import { convertLeadAction, logCallAction, loseLeadAction, proposalAction, updateLeadAction } from "../actions";
 
 export default async function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -34,7 +35,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card title="Ficha del prospecto">
-            <DL items={[["Contacto", l.contactName], ["Teléfono", l.phone], ["Correo", l.email], ["Ubicación", [l.address, l.city, l.country].filter(Boolean).join(", ")], ["Tipo de negocio", l.businessType], ["Fuente", l.source], ["Agente", l.owner], ["Creado", formatDateTime(l.createdAt)], ["Último contacto", formatDateTime(l.lastContactAt)], ["Próximo seguimiento", formatDate(l.nextFollowupAt)], ["Próxima acción", l.nextAction], ["Notas", l.notes]]} />
+            <DL items={[["Contacto", l.contactName], ["Teléfono", l.phone], ["Correo", l.email], ["Ubicación", [l.address, l.city, l.country].filter(Boolean).join(", ")], ["Redes", <SocialLinks key="redes" links={l.socialLinks} />], ["Tipo de negocio", l.businessType], ["Fuente", l.source], ["Agente", l.owner], ["Creado", formatDateTime(l.createdAt)], ["Último contacto", formatDateTime(l.lastContactAt)], ["Próximo seguimiento", formatDate(l.nextFollowupAt)], ["Próxima acción", l.nextAction], ["Notas", l.notes]]} />
           </Card>
           <Card title={`Historial de llamadas (${l.calls.length})`}>
             {l.calls.length ? (
@@ -100,6 +101,9 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <Field label="Teléfono"><Input name="phone" defaultValue={l.phone ?? ""} /></Field>
                 <Field label="Correo"><Input name="email" defaultValue={l.email ?? ""} /></Field>
                 <Field label="Ciudad"><Input name="city" defaultValue={l.city ?? ""} /></Field>
+                <Field label="Facebook"><Input name="social.facebook" defaultValue={l.socialLinks?.facebook ?? ""} placeholder="Enlace o usuario" /></Field>
+                <Field label="Instagram"><Input name="social.instagram" defaultValue={l.socialLinks?.instagram ?? ""} placeholder="Enlace o @usuario" /></Field>
+                <Field label="TikTok"><Input name="social.tiktok" defaultValue={l.socialLinks?.tiktok ?? ""} placeholder="Enlace o @usuario" /></Field>
                 <Field label="Agente"><Select name="ownerId" defaultValue={l.ownerId ?? ""}><option value="">—</option>{d.employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}</Select></Field>
                 <Field label="Notas"><Textarea name="notes" defaultValue={l.notes ?? ""} rows={2} /></Field>
                 <SubmitButton variant="secondary" className="w-full">Guardar</SubmitButton>

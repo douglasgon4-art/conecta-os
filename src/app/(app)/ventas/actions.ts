@@ -4,12 +4,18 @@ import * as svc from "@/server/services/leads";
 
 export async function createLeadAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
+  o.socialLinks = o.social ?? {};
+  delete o.social;
   return run((ctx) => svc.createLead(ctx, o, { allowDuplicate: isConfirmed(o) }), { revalidate: ["/ventas"], duplicateConfirm: true, success: (l) => `Prospecto "${l.tradeName}" agregado a la lista.` });
 }
 export async function updateLeadAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
   const id = String(o.id);
   delete o.id;
+  if (o.social) {
+    o.socialLinks = o.social;
+    delete o.social;
+  }
   return run((ctx) => svc.updateLead(ctx, id, o), { revalidate: [`/ventas/${id}`, "/ventas"], success: "Prospecto actualizado" });
 }
 export async function logCallAction(_: ActionState, fd: FormData) {

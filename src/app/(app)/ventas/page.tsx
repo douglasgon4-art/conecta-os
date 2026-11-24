@@ -8,12 +8,13 @@ import { LEAD_STATUSES } from "@/lib/domain";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { createLeadAction } from "./actions";
+import { SocialLinks } from "./social-links";
 
 export const metadata = { title: "Ventas" };
 
 export default async function SalesPage({ searchParams }: { searchParams: SP }) {
   const q = await searchParams;
-  const list = sp(q.lista) ?? (sp(q.q) ? undefined : "hoy");
+  const list = sp(q.lista) ?? (sp(q.q) ? undefined : "todos");
   const d = await load(["leads.read"], async (ctx) => ({
     counts: await leadListCounts(ctx),
     rows: await listLeads(ctx, { list, q: sp(q.q) }),
@@ -43,6 +44,9 @@ export default async function SalesPage({ searchParams }: { searchParams: SP }) 
                 <Field label="Ciudad"><Input name="city" /></Field>
                 <Field label="Tipo de negocio"><Input name="businessType" placeholder="Clínica, restaurante…" /></Field>
                 <Field label="Fuente"><Input name="source" placeholder="Referido, Instagram…" /></Field>
+                <Field label="Facebook"><Input name="social.facebook" placeholder="Enlace o usuario" /></Field>
+                <Field label="Instagram"><Input name="social.instagram" placeholder="Enlace o @usuario" /></Field>
+                <Field label="TikTok"><Input name="social.tiktok" placeholder="Enlace o @usuario" /></Field>
                 <Field label="Próximo seguimiento"><Input type="date" name="nextFollowupAt" /></Field>
                 <SubmitButton className="w-full">Agregar a pendientes</SubmitButton>
               </ActionForm>
@@ -52,11 +56,12 @@ export default async function SalesPage({ searchParams }: { searchParams: SP }) 
         <Card padded={false} title={list ? LEAD_LISTS[list]?.label : `Resultados para "${sp(q.q)}"`} actions={<form><Input name="q" placeholder="Buscar…" defaultValue={sp(q.q)} className="h-8 w-48" /></form>}>
           {d.rows.length ? (
             <Table>
-              <thead><tr><Th>Negocio</Th><Th>Estado</Th><Th>Próxima acción</Th><Th>Seguimiento</Th><Th>Agente</Th></tr></thead>
+              <thead><tr><Th>Negocio</Th><Th>Redes</Th><Th>Estado</Th><Th>Próxima acción</Th><Th>Seguimiento</Th><Th>Agente</Th></tr></thead>
               <tbody>
                 {d.rows.map(({ lead, owner }) => (
                   <tr key={lead.id} className="hover:bg-slate-50">
                     <Td><Link href={`/ventas/${lead.id}`} className="font-medium hover:underline">{lead.tradeName}</Link><div className="text-xs text-slate-500">{[lead.city, lead.phone].filter(Boolean).join(" · ")}</div></Td>
+                    <Td><SocialLinks links={lead.socialLinks} /></Td>
                     <Td><StatusBadge list={LEAD_STATUSES} value={lead.status} /></Td>
                     <Td>{lead.nextAction ?? "—"}</Td>
                     <Td>{lead.nextFollowupAt ? <Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "gray"}>{formatDate(lead.nextFollowupAt)}</Badge> : "—"}</Td>

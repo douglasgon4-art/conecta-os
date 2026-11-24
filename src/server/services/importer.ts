@@ -32,8 +32,8 @@ export const IMPORT_TEMPLATES: Record<ImportKind, { label: string; perm: Permiss
   prospectos: {
     label: "Prospectos",
     perm: "leads.write",
-    columns: ["negocio", "contacto", "telefono", "correo", "ciudad", "tipo_negocio", "fuente", "estado", "proximo_seguimiento", "proxima_accion", "notas"],
-    example: ["Clínica Ejemplo", "", "8888-2222", "", "Estelí", "Clínica", "Referido", "pendiente_contactar", "", "", ""],
+    columns: ["negocio", "contacto", "telefono", "correo", "ciudad", "tipo_negocio", "fuente", "facebook", "instagram", "tiktok", "estado", "proximo_seguimiento", "proxima_accion", "notas"],
+    example: ["Clínica Ejemplo", "", "8888-2222", "", "Estelí", "Clínica", "Referido", "", "@clinicaejemplo", "", "pendiente_contactar", "", "", ""],
     required: ["negocio"],
   },
 };
@@ -142,7 +142,8 @@ async function importRow(ctx: Ctx, kind: ImportKind, r: Record<string, string>, 
     if (status === "venta_ganada") throw new AppError("VALIDATION", "Las ventas ganadas se importan como clientes");
     const l = await createLead(
       ctx,
-      { tradeName: r.negocio, contactName: blank(r.contacto), phone: blank(r.telefono), email: blank(r.correo), city: blank(r.ciudad), businessType: blank(r.tipo_negocio), source: blank(r.fuente), status, nextFollowupAt: toDate(r.proximo_seguimiento), nextAction: blank(r.proxima_accion), notes: blank(r.notas) },
+      { tradeName: r.negocio, contactName: blank(r.contacto), phone: blank(r.telefono), email: blank(r.correo), city: blank(r.ciudad), businessType: blank(r.tipo_negocio), source: blank(r.fuente), status,
+        socialLinks: Object.fromEntries((["facebook", "instagram", "tiktok"] as const).filter((k) => r[k]).map((k) => [k, r[k]])), nextFollowupAt: toDate(r.proximo_seguimiento), nextAction: blank(r.proxima_accion), notes: blank(r.notas) },
       { allowDuplicate },
     );
     return `Prospecto: ${l.tradeName}`;

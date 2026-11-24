@@ -20,7 +20,11 @@ export const leadInput = z.object({
   address: zText(300),
   businessType: zText(100),
   website: zText(300),
-  socialLinks: z.record(z.string(), z.string()).optional(),
+  // Enlaces o usuarios de redes (facebook, instagram, tiktok…); los vacíos se descartan.
+  socialLinks: z.preprocess(
+    (v) => (v && typeof v === "object" ? Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, String(x ?? "").trim()]).filter(([, x]) => x)) : v),
+    z.record(z.string(), z.string().max(300)).optional(),
+  ),
   source: zText(100),
   ownerId: zUuid(),
   status: z.preprocess((v) => (v === "" ? undefined : v), z.enum(values(LEAD_STATUSES)).optional()),
@@ -31,7 +35,8 @@ export const leadInput = z.object({
 export type LeadInput = Loose<typeof leadInput>;
 
 /** Listas de trabajo dinámicas: se calculan desde el estado, nunca se mantienen a mano. */
-export const LEAD_LISTS: Record<string, { label: string; statuses?: LeadStatus[]; dueOnly?: boolean }> = {
+export const LEAD_LISTS: Record<string, { label: string; statuses?: LeadStatus[]; dueOnly?: boolean; all?: boolean }> = {
+  todos: { label: "Todos los prospectos", all: true },
   hoy: { label: "Seguimientos para hoy", dueOnly: true },
   pendientes: { label: "Pendientes de contactar", statuses: ["pendiente_contactar"] },
   volver: { label: "Volver a llamar / no contestó", statuses: ["no_contesto", "volver_a_llamar"] },
@@ -114,7 +119,7 @@ export async function leadListCounts(ctx: Ctx) {
   const [due] = await ctx.tx.select({ n: sql<number>`count(*)::int` }).from(leads).where(and(lte(leads.nextFollowupAt, ctx.today), notInArray(leads.status, CLOSED_LEAD_STATUSES)));
   const byStatus = Object.fromEntries(rows.map((r) => [r.status, r.n]));
   return Object.fromEntries(
-    Object.entries(LEAD_LISTS).map(([key, def]) => [key, def.dueOnly ? due.n : (def.statuses ?? []).reduce((a, s) => a + (byStatus[s] ?? 0), 0)]),
+    Object.entries(LEAD_LISTS).map(([key, def]) => [key, def.all ? rows.reduce((a, r) => a + r.n, 0) : def.dueOnly ? due.n : (def.statuses ?? []).reduce((a, s) => a + (byStatus[s] ?? 0), 0)]),
   );
 }
 

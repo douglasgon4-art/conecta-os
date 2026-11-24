@@ -24,12 +24,17 @@ test("rechaza credenciales inválidas y protege las rutas", async ({ page }) => 
   await expect(page.getByText("Correo o contraseña incorrectos")).toBeVisible();
 });
 
+// Mes en curso (la prueba no depende de la fecha en que se ejecute).
+const now = new Date();
+const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+const thisMonthLabel = new RegExp(`${now.toLocaleDateString("es-NI", { month: "long" })} de ${now.getFullYear()}`, "i");
+
 test("crear cliente genera sus espacios y el tablero de 14 entregables", async ({ page }) => {
   await login(page);
   await page.goto("/clientes/nuevo");
   await page.fill("input[name='client.tradeName']", "Consultorio Pepitos E2E");
   await page.fill("input[name='client.city']", "Estelí");
-  await page.fill("input[name='contract.startDate']", "2026-10-01");
+  await page.fill("input[name='contract.startDate']", thisMonthStart);
   await page.fill("input[name='contract.monthlyPrice']", "12000");
   await page.getByRole("button", { name: "Crear cliente y generar espacios" }).click();
   await page.waitForURL(/\/clientes\/[0-9a-f-]+\?creado=1/);
@@ -37,7 +42,7 @@ test("crear cliente genera sus espacios y el tablero de 14 entregables", async (
   await expect(page.locator("h1")).toHaveText("Consultorio Pepitos E2E");
 
   await page.getByRole("link", { name: "Producción", exact: true }).click();
-  await page.getByRole("link", { name: /octubre de 2026/ }).first().click();
+  await page.getByRole("link", { name: thisMonthLabel }).first().click();
   await expect(page.getByText("Área de Diseño")).toBeVisible();
   await expect(page.getByText("0/14 entregables")).toBeVisible();
 

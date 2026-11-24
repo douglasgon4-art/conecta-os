@@ -74,3 +74,19 @@ describe("Ventas y prospectos", () => {
     await expect(as(sales, (ctx) => recordInvoicePayment(ctx, "00000000-0000-0000-0000-000000000000", { amount: 1, paidAt: "2026-10-22", method: "efectivo" }))).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
+
+describe("Base de datos de prospectos", () => {
+  it("la lista «Todos» incluye cada prospecto con sus redes; los vacíos se descartan", async () => {
+    const { createLead, listLeads, leadListCounts, updateLead } = await import("@/server/services/leads");
+    const seller = await makeUser("ventas");
+    const name = uniq("Prospecto redes");
+    const l = await as(seller, (ctx) => createLead(ctx, { tradeName: name, socialLinks: { facebook: " ", instagram: " @clinica " } }));
+    expect(l.socialLinks).toEqual({ instagram: "@clinica" });
+    const all = await as(seller, (ctx) => listLeads(ctx, { list: "todos" }));
+    expect(all.some((r) => r.lead.id === l.id)).toBe(true);
+    const counts = await as(seller, (ctx) => leadListCounts(ctx));
+    expect(counts.todos).toBeGreaterThanOrEqual(1);
+    const after = await as(seller, (ctx) => updateLead(ctx, l.id, { socialLinks: { facebook: "https://facebook.com/clinica", instagram: "@clinica", tiktok: "" } }));
+    expect(after.socialLinks).toEqual({ facebook: "https://facebook.com/clinica", instagram: "@clinica" });
+  });
+});
