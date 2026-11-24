@@ -29,6 +29,13 @@
       "when": 1792900000000,
       "tag": "0003_stories_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795500000000,
+      "tag": "0004_lead_appointments",
+      "breakpoints": true
     }
   ]
 }

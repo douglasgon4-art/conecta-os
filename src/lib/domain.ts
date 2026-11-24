@@ -48,6 +48,11 @@ export const CALL_RESULTS = catalog([
   { value: "mensaje", label: "Mensaje / WhatsApp", tone: "blue" },
 ] as const);
 
+export const APPOINTMENT_MODES = catalog([
+  { value: "presencial", label: "Presencial", tone: "blue" },
+  { value: "videollamada", label: "Videollamada", tone: "blue" },
+] as const);
+
 export const INTEREST_LEVELS = catalog([
   { value: "alto", label: "Alto", tone: "green" },
   { value: "medio", label: "Medio", tone: "yellow" },

@@ -391,6 +391,9 @@ export const leads = pgTable(
     status: text("status").notNull().default("pendiente_contactar"),
     lastContactAt: ts("last_contact_at"),
     nextFollowupAt: day("next_followup_at"),
+    appointmentTime: time("appointment_time"),
+    appointmentMode: text("appointment_mode"), // presencial | videollamada
+    appointmentPlace: text("appointment_place"),
     nextAction: text("next_action"),
     notes: text("notes"),
     lostReason: text("lost_reason"),
@@ -404,6 +407,7 @@ export const leads = pgTable(
     index("leads_status_idx").on(t.status),
     index("leads_normalized_name_idx").on(t.normalizedName),
     index("leads_phone_idx").on(t.phoneDigits),
+    check("leads_appointment_mode_ck", sql`${t.appointmentMode} is null or ${t.appointmentMode} in ('presencial','videollamada')`),
   ],
 );
 
@@ -425,11 +429,17 @@ export const leadCalls = pgTable(
     notes: text("notes"),
     nextAction: text("next_action"),
     nextFollowupAt: day("next_followup_at"),
+    appointmentTime: time("appointment_time"),
+    appointmentMode: text("appointment_mode"),
+    appointmentPlace: text("appointment_place"),
     statusAfter: text("status_after"),
     createdBy: uuid("created_by"),
     createdAt: createdAt(),
   },
-  (t) => [index("lead_calls_lead_idx").on(t.leadId)],
+  (t) => [
+    index("lead_calls_lead_idx").on(t.leadId),
+    check("lead_calls_appointment_mode_ck", sql`${t.appointmentMode} is null or ${t.appointmentMode} in ('presencial','videollamada')`),
+  ],
 );
 
 export const salesProposals = pgTable("sales_proposals", {

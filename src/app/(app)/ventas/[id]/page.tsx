@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { load } from "../../_lib/page";
-import { getLead } from "@/server/services/leads";
+import { getLead, describeAppointment } from "@/server/services/leads";
 import { listPackages, searchClients } from "@/server/services/clients";
 import { listAssignableEmployees } from "@/server/services/employees";
 import { can } from "@/server/ctx";
 import { Badge, Card, DL, Empty, Field, Input, PageHeader, Select, StatusBadge, Textarea } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { ContractFields } from "@/components/forms/contract-fields";
-import { CALL_RESULTS, CLOSED_LEAD_STATUSES, INTEREST_LEVELS, LEAD_STATUSES, labelOf } from "@/lib/domain";
+import { CALL_RESULTS, CLOSED_LEAD_STATUSES, INTEREST_LEVELS, LEAD_STATUSES, labelOf, APPOINTMENT_MODES } from "@/lib/domain";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { SocialLinks } from "../social-links";
@@ -35,7 +35,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card title="Ficha del prospecto">
-            <DL items={[["Contacto", l.contactName], ["Teléfono", l.phone], ["Correo", l.email], ["Ubicación", [l.address, l.city, l.country].filter(Boolean).join(", ")], ["Redes", <SocialLinks key="redes" links={l.socialLinks} />], ["Tipo de negocio", l.businessType], ["Fuente", l.source], ["Agente", l.owner], ["Creado", formatDateTime(l.createdAt)], ["Último contacto", formatDateTime(l.lastContactAt)], ["Próximo seguimiento", formatDate(l.nextFollowupAt)], ["Próxima acción", l.nextAction], ["Notas", l.notes]]} />
+            <DL items={[["Contacto", l.contactName], ["Teléfono", l.phone], ["Correo", l.email], ["Ubicación", [l.address, l.city, l.country].filter(Boolean).join(", ")], ...(l.status === "reunion_programada" ? [["Cita", <strong key="cita">{describeAppointment(l)}</strong>] as [string, React.ReactNode]] : []), ["Redes", <SocialLinks key="redes" links={l.socialLinks} />], ["Tipo de negocio", l.businessType], ["Fuente", l.source], ["Agente", l.owner], ["Creado", formatDateTime(l.createdAt)], ["Último contacto", formatDateTime(l.lastContactAt)], ["Próximo seguimiento", formatDate(l.nextFollowupAt)], ["Próxima acción", l.nextAction], ["Notas", l.notes]]} />
           </Card>
           <Card title={`Historial de llamadas (${l.calls.length})`}>
             {l.calls.length ? (
@@ -88,6 +88,14 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <Field label="Nuevo estado"><Select name="statusAfter" defaultValue=""><option value="">Automático</option>{LEAD_STATUSES.filter((s) => s.value !== "venta_ganada").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</Select></Field>
                 <Field label="Próxima acción"><Input name="nextAction" /></Field>
                 <Field label="Fecha de seguimiento o cita"><Input type="date" name="nextFollowupAt" /></Field>
+                <fieldset className="mb-3 rounded-md border border-slate-200 p-2">
+                  <legend className="px-1 text-xs font-semibold text-slate-600">Si queda una cita programada</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Hora"><Input type="time" name="appointmentTime" /></Field>
+                    <Field label="Modalidad"><Select name="appointmentMode" defaultValue=""><option value="">—</option>{APPOINTMENT_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</Select></Field>
+                  </div>
+                  <Field label="Lugar o enlace de la videollamada"><Input name="appointmentPlace" placeholder="Dirección, o enlace de Meet / Zoom / WhatsApp" /></Field>
+                </fieldset>
                 <SubmitButton className="w-full">Guardar llamada</SubmitButton>
               </ActionForm>
             </Card>
@@ -102,6 +110,14 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <Field label="Correo"><Input name="email" defaultValue={l.email ?? ""} /></Field>
                 <Field label="Ciudad"><Input name="city" defaultValue={l.city ?? ""} /></Field>
                 <Field label="Fecha de seguimiento o cita"><Input type="date" name="nextFollowupAt" defaultValue={l.nextFollowupAt ?? ""} /></Field>
+                <fieldset className="mb-3 rounded-md border border-slate-200 p-2">
+                  <legend className="px-1 text-xs font-semibold text-slate-600">Si queda una cita programada</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Field label="Hora"><Input type="time" name="appointmentTime" defaultValue={l.appointmentTime?.slice(0, 5) ?? ""} /></Field>
+                    <Field label="Modalidad"><Select name="appointmentMode" defaultValue={l.appointmentMode ?? ""}><option value="">—</option>{APPOINTMENT_MODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</Select></Field>
+                  </div>
+                  <Field label="Lugar o enlace de la videollamada"><Input name="appointmentPlace" placeholder="Dirección, o enlace de Meet / Zoom / WhatsApp" defaultValue={l.appointmentPlace ?? ""} /></Field>
+                </fieldset>
                 <Field label="Facebook"><Input name="social.facebook" defaultValue={l.socialLinks?.facebook ?? ""} placeholder="Enlace o usuario" /></Field>
                 <Field label="Instagram"><Input name="social.instagram" defaultValue={l.socialLinks?.instagram ?? ""} placeholder="Enlace o @usuario" /></Field>
                 <Field label="TikTok"><Input name="social.tiktok" defaultValue={l.socialLinks?.tiktok ?? ""} placeholder="Enlace o @usuario" /></Field>

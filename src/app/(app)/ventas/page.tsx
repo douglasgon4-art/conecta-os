@@ -4,7 +4,7 @@ import { LEAD_LISTS, leadListCounts, listLeads } from "@/server/services/leads";
 import { can } from "@/server/ctx";
 import { Badge, Card, Empty, Field, Input, PageHeader, StatusBadge, Table, Td, Th } from "@/components/ui";
 import { ActionForm, SubmitButton } from "@/components/action-form";
-import { LEAD_STATUSES } from "@/lib/domain";
+import { APPOINTMENT_MODES, LEAD_STATUSES, labelOf } from "@/lib/domain";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { createLeadAction } from "./actions";
@@ -64,7 +64,7 @@ export default async function SalesPage({ searchParams }: { searchParams: SP }) 
                     <Td><SocialLinks links={lead.socialLinks} /></Td>
                     <Td><StatusBadge list={LEAD_STATUSES} value={lead.status} /></Td>
                     <Td>{lead.nextAction ?? "—"}</Td>
-                    <Td>{lead.nextFollowupAt ? <Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "gray"}>{formatDate(lead.nextFollowupAt)}</Badge> : "—"}</Td>
+                    <Td>{list === "citas" && lead.nextFollowupAt ? <div className="text-xs"><Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "blue"}>{formatDate(lead.nextFollowupAt)}{lead.appointmentTime && ` · ${lead.appointmentTime.slice(0, 5)}`}</Badge><div className="mt-1">{labelOf(APPOINTMENT_MODES, lead.appointmentMode)}{lead.appointmentPlace && ` · ${lead.appointmentPlace}`}</div></div> : lead.nextFollowupAt ? <Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "gray"}>{formatDate(lead.nextFollowupAt)}</Badge> : "—"}</Td>
                     <Td>{owner ?? "—"}</Td>
                   </tr>
                 ))}

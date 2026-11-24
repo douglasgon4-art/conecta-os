@@ -3,12 +3,28 @@ import { z } from "zod";
 import { clients, employees, leadCalls, leads, salesProposals } from "../db/schema";
 import { audit, requirePerm, type Ctx } from "../ctx";
 import { AppError, conflict, notFound } from "../errors";
-import { Loose, parse, zCurrency, zDate, zEmail, zMoney, zRequiredText, zText, zUuid } from "../validation";
+import { Loose, parse, zCurrency, zDate, zEmail, zMoney, zRequiredText, zText, zTime, zUuid } from "../validation";
+import { formatDate } from "@/lib/dates";
 import { normalizeName, phoneDigits } from "@/lib/text";
-import { CALL_RESULTS, CLOSED_LEAD_STATUSES, INTEREST_LEVELS, LEAD_STATUSES, labelOf, values, type LeadStatus } from "@/lib/domain";
+import { APPOINTMENT_MODES, CALL_RESULTS, CLOSED_LEAD_STATUSES, INTEREST_LEVELS, LEAD_STATUSES, labelOf, values, type LeadStatus } from "@/lib/domain";
 import { createClient, findClientDuplicates, type ContractInput } from "./clients";
 import { initializeClientWorkspace, getActiveContract } from "./workspace";
 import { notify } from "./notifications";
+
+const appointmentFields = {
+  appointmentTime: zTime(),
+  appointmentMode: z.preprocess((v) => (v === "" ? undefined : v), z.enum(values(APPOINTMENT_MODES)).optional()),
+  appointmentPlace: zText(300),
+};
+
+/** Una cita necesita fecha, hora y modalidad (presencial o videollamada). */
+function requireAppointment(a: { date?: string | null; time?: string | null; mode?: string | null }) {
+  const missing = [!a.date && "fecha", !a.time && "hora", !a.mode && "si es presencial o videollamada"].filter(Boolean);
+  if (missing.length) throw new AppError("VALIDATION", `Para agendar la cita falta: ${missing.join(", ")}`);
+}
+export function describeAppointment(l: { nextFollowupAt: string | null; appointmentTime: string | null; appointmentMode: string | null; appointmentPlace: string | null }) {
+  return [l.nextFollowupAt && formatDate(l.nextFollowupAt, { withWeekday: true }), l.appointmentTime?.slice(0, 5), l.appointmentMode && labelOf(APPOINTMENT_MODES, l.appointmentMode), l.appointmentPlace].filter(Boolean).join(" · ");
+}
 
 export const leadInput = z.object({
   tradeName: zRequiredText(150),
@@ -29,6 +45,7 @@ export const leadInput = z.object({
   ownerId: zUuid(),
   status: z.preprocess((v) => (v === "" ? undefined : v), z.enum(values(LEAD_STATUSES)).optional()),
   nextFollowupAt: zDate(),
+  ...appointmentFields,
   nextAction: zText(300),
   notes: zText(4000),
 });
@@ -88,9 +105,9 @@ export async function updateLead(ctx: Ctx, id: string, raw: Partial<LeadInput>) 
   const [before] = await ctx.tx.select().from(leads).where(eq(leads.id, id));
   if (!before) throw notFound("Prospecto");
   if (input.status === "venta_ganada") throw new AppError("VALIDATION", "Para marcar la venta como ganada usa «Convertir en cliente»");
-  const followup = "nextFollowupAt" in raw ? input.nextFollowupAt : before.nextFollowupAt;
-  if (input.status === "reunion_programada" && before.status !== "reunion_programada" && !followup) {
-    throw new AppError("VALIDATION", "Indica la fecha de la cita en «Fecha de seguimiento o cita»");
+  const pick = <K extends "nextFollowupAt" | "appointmentTime" | "appointmentMode">(k: K) => (k in raw ? input[k] : before[k]);
+  if ((input.status ?? before.status) === "reunion_programada") {
+    requireAppointment({ date: pick("nextFollowupAt"), time: pick("appointmentTime"), mode: pick("appointmentMode") });
   }
   const patch: Partial<typeof leads.$inferInsert> = {};
   for (const [k, v] of Object.entries(input)) if (k in raw) (patch as Record<string, unknown>)[k] = v ?? null;
@@ -149,6 +166,7 @@ export const callInput = z.object({
   notes: zText(4000),
   nextAction: zText(300),
   nextFollowupAt: zDate(),
+  ...appointmentFields,
   statusAfter: z.preprocess((v) => (v === "" ? undefined : v), z.enum(values(LEAD_STATUSES)).optional()),
 });
 
@@ -161,7 +179,11 @@ export async function logCall(ctx: Ctx, leadId: string, raw: Loose<typeof callIn
   if (input.statusAfter === "venta_ganada") throw new AppError("VALIDATION", "Para marcar la venta como ganada usa «Convertir en cliente»");
   const autoStatus: Partial<Record<string, LeadStatus>> = { no_contesto: "no_contesto", buzon: "no_contesto", contesto: lead.status === "pendiente_contactar" ? "primer_contacto" : undefined };
   const statusAfter = input.statusAfter ?? autoStatus[input.result] ?? (lead.status as LeadStatus);
-  if (statusAfter === "reunion_programada" && !input.nextFollowupAt) throw new AppError("VALIDATION", "Indica la fecha de la cita en «Fecha de seguimiento o cita»");
+  const isAppointment = statusAfter === "reunion_programada";
+  if (isAppointment) requireAppointment({ date: input.nextFollowupAt, time: input.appointmentTime, mode: input.appointmentMode });
+  const appointment = isAppointment
+    ? { appointmentTime: input.appointmentTime!, appointmentMode: input.appointmentMode!, appointmentPlace: input.appointmentPlace ?? null }
+    : { appointmentTime: null, appointmentMode: null, appointmentPlace: null };
   const calledAt = input.calledAt ?? ctx.now;
   const [call] = await ctx.tx
     .insert(leadCalls)
@@ -178,16 +200,17 @@ export async function logCall(ctx: Ctx, leadId: string, raw: Loose<typeof callIn
       notes: input.notes ?? null,
       nextAction: input.nextAction ?? null,
       nextFollowupAt: input.nextFollowupAt ?? null,
+      ...appointment,
       statusAfter,
       createdBy: ctx.actor.userId,
     })
     .returning();
   const [after] = await ctx.tx
     .update(leads)
-    .set({ status: statusAfter, lastContactAt: calledAt, nextFollowupAt: input.nextFollowupAt ?? null, nextAction: input.nextAction ?? null })
+    .set({ status: statusAfter, lastContactAt: calledAt, nextFollowupAt: input.nextFollowupAt ?? null, nextAction: input.nextAction ?? null, ...appointment })
     .where(eq(leads.id, leadId))
     .returning();
-  await audit(ctx, { action: "lead.call", entityType: "lead", entityId: leadId, summary: `${labelOf(CALL_RESULTS, input.result)} con ${lead.tradeName} → ${labelOf(LEAD_STATUSES, statusAfter)}`, after: call });
+  await audit(ctx, { action: "lead.call", entityType: "lead", entityId: leadId, summary: `${labelOf(CALL_RESULTS, input.result)} con ${lead.tradeName} → ${labelOf(LEAD_STATUSES, statusAfter)}${isAppointment ? ` (${describeAppointment({ nextFollowupAt: input.nextFollowupAt!, ...appointment })})` : ""}`, after: call });
   return { call, lead: after };
 }
 
