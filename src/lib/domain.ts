@@ -26,7 +26,7 @@ export const LEAD_STATUSES = catalog([
   { value: "no_contesto", label: "No contestó", tone: "yellow" },
   { value: "volver_a_llamar", label: "Volver a llamar", tone: "yellow" },
   { value: "interesado", label: "Interesado", tone: "blue" },
-  { value: "reunion_programada", label: "Reunión programada", tone: "blue" },
+  { value: "reunion_programada", label: "Cita programada", tone: "blue" },
   { value: "propuesta_enviada", label: "Propuesta enviada", tone: "blue" },
   { value: "en_negociacion", label: "En negociación", tone: "blue" },
   { value: "seguimiento_pendiente", label: "Seguimiento pendiente", tone: "yellow" },

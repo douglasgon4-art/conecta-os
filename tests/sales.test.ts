@@ -90,3 +90,16 @@ describe("Base de datos de prospectos", () => {
     expect(after.socialLinks).toEqual({ facebook: "https://facebook.com/clinica", instagram: "@clinica" });
   });
 });
+
+describe("Citas programadas", () => {
+  it("una cita exige fecha y aparece en su propia lista", async () => {
+    const seller = await makeUser("ventas");
+    const l = await as(seller, (ctx) => createLead(ctx, { tradeName: uniq("Cita") }));
+    await expect(as(seller, (ctx) => logCall(ctx, l.id, { result: "contesto", statusAfter: "reunion_programada" }))).rejects.toMatchObject({ code: "VALIDATION" });
+    await as(seller, (ctx) => logCall(ctx, l.id, { result: "contesto", statusAfter: "reunion_programada", nextFollowupAt: "2026-12-02" }));
+    const citas = await as(seller, (ctx) => listLeads(ctx, { list: "citas" }));
+    expect(citas.find((r) => r.lead.id === l.id)?.lead.nextFollowupAt).toBe("2026-12-02");
+    const interesados = await as(seller, (ctx) => listLeads(ctx, { list: "interesados" }));
+    expect(interesados.some((r) => r.lead.id === l.id)).toBe(false);
+  });
+});

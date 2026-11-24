@@ -87,7 +87,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <Field label="Notas"><Textarea name="notes" rows={2} /></Field>
                 <Field label="Nuevo estado"><Select name="statusAfter" defaultValue=""><option value="">Automático</option>{LEAD_STATUSES.filter((s) => s.value !== "venta_ganada").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</Select></Field>
                 <Field label="Próxima acción"><Input name="nextAction" /></Field>
-                <Field label="Fecha de seguimiento"><Input type="date" name="nextFollowupAt" /></Field>
+                <Field label="Fecha de seguimiento o cita"><Input type="date" name="nextFollowupAt" /></Field>
                 <SubmitButton className="w-full">Guardar llamada</SubmitButton>
               </ActionForm>
             </Card>
@@ -101,6 +101,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <Field label="Teléfono"><Input name="phone" defaultValue={l.phone ?? ""} /></Field>
                 <Field label="Correo"><Input name="email" defaultValue={l.email ?? ""} /></Field>
                 <Field label="Ciudad"><Input name="city" defaultValue={l.city ?? ""} /></Field>
+                <Field label="Fecha de seguimiento o cita"><Input type="date" name="nextFollowupAt" defaultValue={l.nextFollowupAt ?? ""} /></Field>
                 <Field label="Facebook"><Input name="social.facebook" defaultValue={l.socialLinks?.facebook ?? ""} placeholder="Enlace o usuario" /></Field>
                 <Field label="Instagram"><Input name="social.instagram" defaultValue={l.socialLinks?.instagram ?? ""} placeholder="Enlace o @usuario" /></Field>
                 <Field label="TikTok"><Input name="social.tiktok" defaultValue={l.socialLinks?.tiktok ?? ""} placeholder="Enlace o @usuario" /></Field>

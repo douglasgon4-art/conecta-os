@@ -40,7 +40,8 @@ export const LEAD_LISTS: Record<string, { label: string; statuses?: LeadStatus[]
   hoy: { label: "Seguimientos para hoy", dueOnly: true },
   pendientes: { label: "Pendientes de contactar", statuses: ["pendiente_contactar"] },
   volver: { label: "Volver a llamar / no contestó", statuses: ["no_contesto", "volver_a_llamar"] },
-  interesados: { label: "Interesados y reuniones", statuses: ["primer_contacto", "interesado", "reunion_programada"] },
+  interesados: { label: "Interesados", statuses: ["primer_contacto", "interesado"] },
+  citas: { label: "Citas programadas", statuses: ["reunion_programada"] },
   propuestas: { label: "Propuestas y negociación", statuses: ["propuesta_enviada", "en_negociacion", "seguimiento_pendiente"] },
   proximo_mes: { label: "Seguimiento el próximo mes", statuses: ["seguimiento_proximo_mes"] },
   ganadas: { label: "Ventas ganadas", statuses: ["venta_ganada"] },
@@ -87,6 +88,10 @@ export async function updateLead(ctx: Ctx, id: string, raw: Partial<LeadInput>) 
   const [before] = await ctx.tx.select().from(leads).where(eq(leads.id, id));
   if (!before) throw notFound("Prospecto");
   if (input.status === "venta_ganada") throw new AppError("VALIDATION", "Para marcar la venta como ganada usa «Convertir en cliente»");
+  const followup = "nextFollowupAt" in raw ? input.nextFollowupAt : before.nextFollowupAt;
+  if (input.status === "reunion_programada" && before.status !== "reunion_programada" && !followup) {
+    throw new AppError("VALIDATION", "Indica la fecha de la cita en «Fecha de seguimiento o cita»");
+  }
   const patch: Partial<typeof leads.$inferInsert> = {};
   for (const [k, v] of Object.entries(input)) if (k in raw) (patch as Record<string, unknown>)[k] = v ?? null;
   if (input.tradeName) patch.normalizedName = normalizeName(input.tradeName);
@@ -156,6 +161,7 @@ export async function logCall(ctx: Ctx, leadId: string, raw: Loose<typeof callIn
   if (input.statusAfter === "venta_ganada") throw new AppError("VALIDATION", "Para marcar la venta como ganada usa «Convertir en cliente»");
   const autoStatus: Partial<Record<string, LeadStatus>> = { no_contesto: "no_contesto", buzon: "no_contesto", contesto: lead.status === "pendiente_contactar" ? "primer_contacto" : undefined };
   const statusAfter = input.statusAfter ?? autoStatus[input.result] ?? (lead.status as LeadStatus);
+  if (statusAfter === "reunion_programada" && !input.nextFollowupAt) throw new AppError("VALIDATION", "Indica la fecha de la cita en «Fecha de seguimiento o cita»");
   const calledAt = input.calledAt ?? ctx.now;
   const [call] = await ctx.tx
     .insert(leadCalls)
