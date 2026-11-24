@@ -18,6 +18,10 @@ export async function updateLeadAction(_: ActionState, fd: FormData) {
   }
   return run((ctx) => svc.updateLead(ctx, id, o), { revalidate: [`/ventas/${id}`, "/ventas"], success: "Prospecto actualizado" });
 }
+export async function quickOutcomeAction(_: ActionState, fd: FormData) {
+  const o = formToObject(fd);
+  return run((ctx) => svc.quickOutcome(ctx, String(o.leadId), o), { revalidate: ["/ventas", `/ventas/${o.leadId}`], success: (r) => `Guardado: ${r.lead.tradeName}` });
+}
 export async function logCallAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
   return run((ctx) => svc.logCall(ctx, String(o.leadId), o), { revalidate: [`/ventas/${o.leadId}`, "/ventas"], success: (r) => `Llamada registrada. Estado: ${r.lead.status}` });

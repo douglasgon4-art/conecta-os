@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/cn";
 import { createLeadAction } from "./actions";
 import { SocialLinks } from "./social-links";
+import { QuickStatus } from "./quick-status";
 
 export const metadata = { title: "Ventas" };
 
@@ -56,7 +57,7 @@ export default async function SalesPage({ searchParams }: { searchParams: SP }) 
         <Card padded={false} title={list ? LEAD_LISTS[list]?.label : `Resultados para "${sp(q.q)}"`} actions={<form><Input name="q" placeholder="Buscar…" defaultValue={sp(q.q)} className="h-8 w-48" /></form>}>
           {d.rows.length ? (
             <Table>
-              <thead><tr><Th>Negocio</Th><Th>Redes</Th><Th>Estado</Th><Th>Próxima acción</Th><Th>{list === "citas" ? "Fecha de la cita" : "Seguimiento"}</Th><Th>Agente</Th></tr></thead>
+              <thead><tr><Th>Negocio</Th><Th>Redes</Th><Th>Estado</Th><Th>Próxima acción</Th><Th>{list === "citas" ? "Fecha de la cita" : "Seguimiento"}</Th><Th>Agente</Th>{d.canWrite && <Th>Cambiar estado</Th>}</tr></thead>
               <tbody>
                 {d.rows.map(({ lead, owner }) => (
                   <tr key={lead.id} className="hover:bg-slate-50">
@@ -66,6 +67,7 @@ export default async function SalesPage({ searchParams }: { searchParams: SP }) 
                     <Td>{lead.nextAction ?? "—"}</Td>
                     <Td>{list === "citas" && lead.nextFollowupAt ? <div className="text-xs"><Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "blue"}>{formatDate(lead.nextFollowupAt)}{lead.appointmentTime && ` · ${lead.appointmentTime.slice(0, 5)}`}</Badge><div className="mt-1">{labelOf(APPOINTMENT_MODES, lead.appointmentMode)}{lead.appointmentPlace && ` · ${lead.appointmentPlace}`}</div></div> : lead.nextFollowupAt ? <Badge tone={lead.nextFollowupAt < d.today ? "red" : lead.nextFollowupAt === d.today ? "yellow" : "gray"}>{formatDate(lead.nextFollowupAt)}</Badge> : "—"}</Td>
                     <Td>{owner ?? "—"}</Td>
+                    {d.canWrite && <Td>{["venta_ganada", "venta_perdida"].includes(lead.status) ? <span className="text-xs text-slate-400">Cerrado</span> : <QuickStatus leadId={lead.id} today={d.today} />}</Td>}
                   </tr>
                 ))}
               </tbody>

@@ -54,6 +54,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
             ) : <Empty>Aún no hay llamadas registradas.</Empty>}
           </Card>
           {d.canConvert && !closed && (
+            <div id="convertir" className="scroll-mt-20">
             <Card title="Venta ganada: convertir en cliente">
               {d.similarClients.length > 0 && (
                 <div className="mb-3 rounded-md bg-amber-50 p-2 text-sm text-amber-900">Clientes con nombre parecido: {d.similarClients.map((c) => c.tradeName).join(", ")}. Si es el mismo, vincúlalo abajo para no duplicarlo.</div>
@@ -70,6 +71,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
                 <SubmitButton>Marcar venta ganada y crear cliente</SubmitButton>
               </ActionForm>
             </Card>
+            </div>
           )}
         </div>
         <div className="space-y-4">

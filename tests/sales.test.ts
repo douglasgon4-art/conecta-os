@@ -107,3 +107,20 @@ describe("Citas programadas", () => {
     expect(interesados.some((r) => r.lead.id === l.id)).toBe(false);
   });
 });
+
+describe("Cambio rápido de estado desde la lista", () => {
+  it("registra la llamada y cambia el estado; la cita exige fecha, hora y modalidad", async () => {
+    const { quickOutcome } = await import("@/server/services/leads");
+    const seller = await makeUser("ventas");
+    const l = await as(seller, (ctx) => createLead(ctx, { tradeName: uniq("Rápido") }));
+    const r1 = await as(seller, (ctx) => quickOutcome(ctx, l.id, { outcome: "no_contesto" }));
+    expect(r1.lead.status).toBe("no_contesto");
+    await expect(as(seller, (ctx) => quickOutcome(ctx, l.id, { outcome: "cita", nextFollowupAt: "2026-12-03" }))).rejects.toMatchObject({ code: "VALIDATION" });
+    const r2 = await as(seller, (ctx) => quickOutcome(ctx, l.id, { outcome: "cita", nextFollowupAt: "2026-12-03", appointmentTime: "10:00", appointmentMode: "presencial" }));
+    expect(r2.lead.status).toBe("reunion_programada");
+    const r3 = await as(seller, (ctx) => quickOutcome(ctx, l.id, { outcome: "no_interesado" }));
+    expect(r3.lead.status).toBe("no_interesado");
+    expect((await as(seller, (ctx) => getLead(ctx, l.id))).calls).toHaveLength(3);
+    await expect(as(seller, (ctx) => quickOutcome(ctx, l.id, { outcome: "inventado" }))).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+});

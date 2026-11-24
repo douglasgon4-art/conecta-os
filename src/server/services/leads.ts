@@ -214,6 +214,32 @@ export async function logCall(ctx: Ctx, leadId: string, raw: Loose<typeof callIn
   return { call, lead: after };
 }
 
+/** Resultados rápidos desde la lista de prospectos: cada uno queda como una llamada en el historial. */
+export const QUICK_OUTCOMES = {
+  no_contesto: { label: "Llamé y no contestó", result: "no_contesto", status: "no_contesto" },
+  volver_a_llamar: { label: "Contestó: volver a llamar", result: "contesto", status: "volver_a_llamar" },
+  interesado: { label: "Contestó: está interesado", result: "contesto", status: "interesado" },
+  cita: { label: "Agendó una cita", result: "contesto", status: "reunion_programada" },
+  proximo_mes: { label: "Llamar el próximo mes", result: "contesto", status: "seguimiento_proximo_mes" },
+  no_interesado: { label: "Dijo que no", result: "contesto", status: "no_interesado" },
+} as const satisfies Record<string, { label: string; result: (typeof CALL_RESULTS)[number]["value"]; status: LeadStatus }>;
+export type QuickOutcome = keyof typeof QUICK_OUTCOMES;
+
+export async function quickOutcome(ctx: Ctx, leadId: string, raw: { outcome?: unknown; channel?: unknown; nextFollowupAt?: unknown; appointmentTime?: unknown; appointmentMode?: unknown; appointmentPlace?: unknown; notes?: unknown }) {
+  const o = QUICK_OUTCOMES[String(raw.outcome) as QuickOutcome];
+  if (!o) throw new AppError("VALIDATION", "Elige qué pasó con el prospecto");
+  return logCall(ctx, leadId, {
+    result: o.result,
+    statusAfter: o.status,
+    channel: raw.channel || "llamada",
+    nextFollowupAt: raw.nextFollowupAt,
+    appointmentTime: raw.appointmentTime,
+    appointmentMode: raw.appointmentMode,
+    appointmentPlace: raw.appointmentPlace,
+    notes: raw.notes,
+  });
+}
+
 export const proposalInput = z.object({
   title: zRequiredText(200),
   packageId: zUuid(),
