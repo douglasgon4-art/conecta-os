@@ -5,7 +5,7 @@ import { Badge, Card, Field, Input, PageHeader, Select, Table, Td, Th } from "@/
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { formatDateTime } from "@/lib/dates";
 import { ConfigTabs } from "../nav";
-import { createUserAction, userActiveAction, userRolesAction } from "../actions";
+import { createUserAction, userActiveAction, userPasswordAction, userRolesAction } from "../actions";
 
 export const metadata = { title: "Usuarios" };
 
@@ -18,7 +18,7 @@ export default async function UsersPage() {
       <div className="grid gap-4 xl:grid-cols-[1fr_20rem]">
         <Card padded={false}>
           <Table>
-            <thead><tr><Th>Usuario</Th><Th>Colaborador</Th><Th>Roles</Th><Th>Último acceso</Th><Th>Estado</Th></tr></thead>
+            <thead><tr><Th>Usuario</Th><Th>Colaborador</Th><Th>Roles</Th><Th>Último acceso / contraseña</Th><Th>Estado</Th></tr></thead>
             <tbody>{d.users.map((u) => (
               <tr key={u.id}>
                 <Td><div className="font-medium">{u.name}</div><div className="text-xs text-slate-500">{u.email}</div></Td>
@@ -30,7 +30,14 @@ export default async function UsersPage() {
                     <SubmitButton size="sm" variant="ghost">Guardar roles</SubmitButton>
                   </ActionForm>
                 </Td>
-                <Td className="text-xs">{formatDateTime(u.lastLoginAt)}</Td>
+                <Td className="text-xs">
+                  {formatDateTime(u.lastLoginAt)}
+                  <ActionForm action={userPasswordAction} resetOnSuccess className="mt-2 space-y-1">
+                    <input type="hidden" name="userId" value={u.id} />
+                    <Input type="password" name="password" required minLength={8} placeholder="Nueva contraseña" autoComplete="new-password" className="h-8 w-40 text-xs" />
+                    <SubmitButton size="sm" variant="ghost">Cambiar contraseña</SubmitButton>
+                  </ActionForm>
+                </Td>
                 <Td><ActionForm action={userActiveAction} inline><input type="hidden" name="userId" value={u.id} /><input type="hidden" name="active" value={u.isActive ? "0" : "1"} /><Badge tone={u.isActive ? "green" : "gray"}>{u.isActive ? "Activo" : "Inactivo"}</Badge><SubmitButton size="sm" variant="ghost">{u.isActive ? "Desactivar" : "Activar"}</SubmitButton></ActionForm></Td>
               </tr>
             ))}</tbody>

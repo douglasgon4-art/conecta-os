@@ -68,6 +68,18 @@ export async function setUserActive(ctx: Ctx, userId: string, isActive: boolean)
   await audit(ctx, { action: "user.active", entityType: "user", entityId: userId, summary: isActive ? "Usuario activado" : "Usuario desactivado" });
 }
 
+/** Gerencia asigna una contraseña nueva a otra persona (p. ej. si la olvidó). Cierra sus sesiones abiertas. */
+export async function resetUserPassword(ctx: Ctx, userId: string, next: string) {
+  requirePerm(ctx, "settings.manage");
+  const password = next.trim();
+  if (password.length < 8) throw new AppError("VALIDATION", "La nueva contraseña debe tener al menos 8 caracteres");
+  const [u] = await ctx.tx.select({ id: users.id, email: users.email }).from(users).where(eq(users.id, userId));
+  if (!u) throw notFound("Usuario");
+  await ctx.tx.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, u.id));
+  if (u.id !== ctx.actor.userId) await ctx.tx.delete(sessions).where(eq(sessions.userId, u.id));
+  await audit(ctx, { action: "user.password_reset", entityType: "user", entityId: u.id, summary: `Contraseña restablecida por Gerencia: ${u.email}` });
+}
+
 export async function changeOwnPassword(ctx: Ctx, current: string, next: string) {
   if (!ctx.actor.userId) throw notFound("Usuario");
   if (next.length < 8) throw new AppError("VALIDATION", "La nueva contraseña debe tener al menos 8 caracteres");

@@ -1,7 +1,7 @@
 "use server";
 import { formToObject, isConfirmed, run, type ActionState } from "../_lib/action";
 import { updateSetting, SETTINGS_SCHEMA, type Settings } from "@/server/services/settings";
-import { createUser, setRoleNotification, setRolePermissions, setUserActive, setUserRoles } from "@/server/services/users";
+import { createUser, setRoleNotification, setRolePermissions, resetUserPassword, setUserActive, setUserRoles } from "@/server/services/users";
 import { createRuleSetVersion, validateRuleSet } from "@/server/services/payroll";
 import { runAutomations } from "@/server/automations";
 import { getActor } from "@/server/auth/session";
@@ -40,6 +40,10 @@ export async function userRolesAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);
   if (!isConfirmed(o)) return { ok: false, confirm: "¿Cambiar los roles (y por tanto los permisos) de este usuario?", at: Date.now() };
   return run((ctx) => setUserRoles(ctx, String(o.userId), ([] as string[]).concat((o.roleKeys as string[]) ?? [])), { revalidate: ["/configuracion/usuarios"], success: "Roles actualizados" });
+}
+export async function userPasswordAction(_: ActionState, fd: FormData) {
+  const o = formToObject(fd);
+  return run((ctx) => resetUserPassword(ctx, String(o.userId), String(o.password ?? "")), { revalidate: ["/configuracion/usuarios"], success: "Contraseña nueva guardada. Entrégasela a la persona y pídele que la cambie en Mi perfil." });
 }
 export async function userActiveAction(_: ActionState, fd: FormData) {
   const o = formToObject(fd);

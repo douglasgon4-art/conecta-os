@@ -77,3 +77,16 @@ describe("Seguridad en la base de datos (RLS y privilegios)", () => {
     expect(after.paidAmount).toBe(8000);
   });
 });
+
+describe("Restablecer contraseña", () => {
+  it("Gerencia asigna una contraseña nueva; otros roles no pueden", async () => {
+    const { resetUserPassword } = await import("@/server/services/users");
+    const { authenticate } = await import("@/server/auth/core");
+    const boss = await makeUser("gerencia");
+    const designer = await makeUser("disenador");
+    await as(boss, (ctx) => resetUserPassword(ctx, designer.userId!, "  NuevaClave2026 "));
+    const email = (await as(boss, ({ tx }) => tx.execute(sql`select email from users where id = ${designer.userId}`))).rows[0].email as string;
+    expect(await authenticate(email, "NuevaClave2026")).toBeTruthy();
+    await expect(as(designer, (ctx) => resetUserPassword(ctx, boss.userId!, "OtraClave2026"))).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
